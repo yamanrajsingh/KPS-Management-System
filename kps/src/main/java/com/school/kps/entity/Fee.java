@@ -18,7 +18,7 @@ public class Fee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "fee_id")
-    private long id;
+    private Integer id;
 
     @Column(length = 20, nullable = false)
     private String academicYear;
@@ -47,13 +47,18 @@ public class Fee {
     @Column(columnDefinition = "TEXT")
     private String remarks;
 
-    @Column(updatable = false)
-    private Date createdAt;
 
-    @Column
-    private Date updatedAt;
+    @Column(updatable = false)
+    private Date createdAt = new Date();
+
+    private Date updatedAt = new Date();
 
     @ManyToOne
     @JoinColumn(name = "student_id")
     private Student student;
+
+    @PreUpdate
+    public void setUpdatedAt() {
+        this.updatedAt = new Date();
+    }
 }

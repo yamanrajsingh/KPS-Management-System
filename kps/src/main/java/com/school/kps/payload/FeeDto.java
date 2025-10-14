@@ -1,5 +1,6 @@
 package com.school.kps.payload;
 
+import com.school.kps.entity.Student;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,7 +16,10 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class FeeDto {
 
-    private Long id;
+    private Integer id;
+
+    @NotNull(message = "Student ID is required")
+    private Integer studentId;
 
     @NotBlank(message = "Academic year is mandatory")
     @Size(max = 20, message = "Academic year must be at most 20 characters")
@@ -46,5 +50,6 @@ public class FeeDto {
 
     private String remarks;
 
-    private Long studentId;  // For linking the fee to a student
+
+
 }
