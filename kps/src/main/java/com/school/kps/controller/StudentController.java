@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/students")
@@ -62,6 +63,16 @@ public class StudentController {
     public ResponseEntity<List<StudentDto>> getStudentsByName(@PathVariable String name, @PathVariable String className) {
         List<StudentDto> student = this.studentServices.searchStudents(name, className);
         return new ResponseEntity<>(student, HttpStatus.OK);
+    }
+
+    @GetMapping("/stats")
+    public Map<String, Long> getStudentStats() {
+        return this.studentServices.getStudentStats();
+    }
+
+    @GetMapping("/count/{className}")
+    public Long getStudentCountByClassName(@PathVariable String className) {
+        return this.studentServices.getStudentCountByClassName(className);
     }
 
 }

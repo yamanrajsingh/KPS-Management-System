@@ -5,6 +5,7 @@ import com.school.kps.payload.StudentDto;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 
 public interface StudentServices {
@@ -17,4 +18,6 @@ public interface StudentServices {
     List<StudentDto> findAllStudents();
     List<StudentDto> getStudentsByClassName(String className);
     List<StudentDto> searchStudents(String name, String className);
+    Map<String, Long> getStudentStats();
+    long getStudentCountByClassName(String className);
 }

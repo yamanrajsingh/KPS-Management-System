@@ -26,6 +26,8 @@ public class Student {
     private String lastName;
     @Column(length = 100, nullable = false, name = "class")
     private String className;
+    @Column(length = 100, nullable = false, name = "gender")
+    private String gender;
     @Column(name = "date_of_birth", nullable = false)
     private LocalDate dob;
     @Column(length = 100, nullable = false)

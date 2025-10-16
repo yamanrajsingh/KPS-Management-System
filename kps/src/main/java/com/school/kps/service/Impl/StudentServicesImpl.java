@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -88,6 +90,25 @@ public class StudentServicesImpl implements StudentServices {
         List<Student> students = this.studentRepo.findByClassNameContainingIgnoreCase(className);
         List<StudentDto> studentDtos = students.stream().map(student -> this.modelMapper.map(student, StudentDto.class)).collect(Collectors.toList());
         return studentDtos;
+    }
+
+    @Override
+    public Map<String, Long> getStudentStats() {
+        long total = this.studentRepo.countTotalStudents();
+        long male = this.studentRepo.countMaleStudents();
+        long female =this.studentRepo.countFemaleStudents();
+
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("totalStudents", total);
+        stats.put("maleStudents", male);
+        stats.put("femaleStudents", female);
+
+        return stats;
+    }
+
+    @Override
+    public long getStudentCountByClassName(String className) {
+        return this.studentRepo.countStudentsByClassName(className);
     }
 
     @Override

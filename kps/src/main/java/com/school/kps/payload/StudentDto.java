@@ -23,6 +23,10 @@ public class StudentDto {
     @Size(min= 3, max = 100, message = "Last name must be at most 100 characters")
     private String lastName;
 
+    @NotBlank(message = "Gender is mandatory")
+    @Size(max = 100, message = "Gender name must be at most 100 characters")
+    private String gender;
+
     @NotBlank(message = "Class is mandatory")
     @Size(max = 100, message = "Class name must be at most 100 characters")
     private String className;
