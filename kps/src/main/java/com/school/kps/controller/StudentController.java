@@ -12,6 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/students")
+@CrossOrigin("*")
 public class StudentController {
 
     @Autowired
@@ -73,6 +74,11 @@ public class StudentController {
     @GetMapping("/count/{className}")
     public Long getStudentCountByClassName(@PathVariable String className) {
         return this.studentServices.getStudentCountByClassName(className);
+    }
+
+    @GetMapping("/class-distribution")
+    public Map<String, Long> getClassDistribution() {
+        return this.studentServices.getClassWiseStudentCount();
     }
 
 }

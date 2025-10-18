@@ -20,4 +20,5 @@ public interface StudentServices {
     List<StudentDto> searchStudents(String name, String className);
     Map<String, Long> getStudentStats();
     long getStudentCountByClassName(String className);
+    Map<String, Long> getClassWiseStudentCount();
 }

@@ -134,6 +134,11 @@ public class StudentServicesImpl implements StudentServices {
         return this.studentRepo.findByFirstNameContainingIgnoreCaseAndClassNameContainingIgnoreCase(name, className)
                 .stream().map(student -> this.modelMapper.map(student, StudentDto.class)).toList();
     }
+    @Override
+    public Map<String, Long> getClassWiseStudentCount() {
+        return this.studentRepo.findAll().stream()
+                .collect(Collectors.groupingBy(Student::getClassName, Collectors.counting()));
+    }
 
 
 }
