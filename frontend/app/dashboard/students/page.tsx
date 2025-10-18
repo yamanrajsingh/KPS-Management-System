@@ -28,22 +28,37 @@ export default function StudentsPage() {
   const [filterClass, setFilterClass] = useState("");
   const [filterGender, setFilterGender] = useState("");
   const [filterLocation, setFilterLocation] = useState("");
+  const [currentPage, setCurrentPage] = useState(0); // zero-based page
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+const [sortBy, setSortBy] = useState("id");
+const [sortDir, setSortDir] = useState("asc");
 
-  const fetchStudents = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/");
-      setStudents(res.data); // backend should return array of students
-      console.log(res.data);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch students");
-    }
-    setLoading(false);
-  };
 
-  useEffect(() => {
-    fetchStudents();
-  }, []);
+const fetchStudents = async () => {
+  setLoading(true);
+  try {
+    const res = await api.get("/", {
+      params: {
+        page: currentPage,
+        size: pageSize,
+        sortBy: sortBy,
+        sortDir: sortDir,
+      },
+    });
+    setStudents(res.data.content); // `content` has students for the page
+    setTotalPages(res.data.totalPages); // total pages from backend
+    console.log(res.data);
+  } catch (err: any) {
+    setError(err.message || "Failed to fetch students");
+  }
+  setLoading(false);
+};
+
+
+useEffect(() => {
+  fetchStudents();
+}, [currentPage, pageSize, sortBy, sortDir]);
 
   const handleAddStudent = async (studentData: any) => {
     try {
@@ -99,6 +114,8 @@ export default function StudentsPage() {
 
     return matchesSearch && matchesClass && matchesGender && matchesLocation;
   });
+
+
 
   const uniqueClasses = [...new Set(students.map((s) => s.className))].sort();
 
@@ -269,6 +286,38 @@ export default function StudentsPage() {
         }}
         onView={(s) => handleViewStudent(s.id)}
       />
+      <div className="flex items-center justify-center gap-2 mt-4">
+  <Button
+    variant="outline"
+    size="sm"
+    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+    disabled={currentPage === 0}
+  >
+    Previous
+  </Button>
+
+  <div className="flex gap-1">
+    {Array.from({ length: totalPages }, (_, i) => i).map((page) => (
+      <Button
+        key={page}
+        size="sm"
+        variant={currentPage === page ? "default" : "outline"}
+        onClick={() => setCurrentPage(page)}
+      >
+        {page + 1}
+      </Button>
+    ))}
+  </div>
+
+  <Button
+    variant="outline"
+    size="sm"
+    onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+    disabled={currentPage === totalPages - 1}
+  >
+    Next
+  </Button>
+</div>
 
       {/* Student Profile */}
       {selectedStudent && (

@@ -109,6 +109,7 @@ export default function StudentTable({
               </TableRow>
             ))}
           </TableBody>
+          
         </Table>
       </div>
     </>
