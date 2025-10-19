@@ -33,7 +33,6 @@ public class FeeDto {
     @DecimalMin(value = "0.0", inclusive = true, message = "Amount paid cannot be negative")
     private BigDecimal amountPaid;
 
-    @NotNull(message = "Due amount is mandatory")
     @DecimalMin(value = "0.0", inclusive = true, message = "Due amount cannot be negative")
     private BigDecimal dueAmount;
 
@@ -47,6 +46,12 @@ public class FeeDto {
 
     @Size(max = 20, message = "Status must be at most 20 characters")
     private String status;  // Paid, Pending, Partially Paid
+    @Size(max = 200, message = "Name must be at most 20 characters")
+    private  String StudentName;
+
+;  // Paid, Pending, Partially Paid
+
+    private StudentDto student;
 
     private String remarks;
 

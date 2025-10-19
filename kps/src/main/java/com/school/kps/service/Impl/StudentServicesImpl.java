@@ -11,14 +11,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+
+
+import jakarta.persistence.criteria.Predicate;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -76,16 +80,58 @@ public class StudentServicesImpl implements StudentServices {
     }
 
     @Override
-    public Page<StudentDto> findAllStudents(Integer page, Integer size, String sortBy, String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+    public Page<StudentDto> findAllStudents(
+            Integer page,
+            Integer size,
+            String sortBy,
+            String sortDir,
+            String search,
+            String className,
+            String gender,
+            String location) {
+
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<Student> studentPage = this.studentRepo.findAll(pageable);
+        Specification<Student> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
 
-        // Convert to DTO
-        Page<StudentDto> studentDtoPage = studentPage.map(student -> this.modelMapper.map(student, StudentDto.class));
-        return studentDtoPage;
+            // 🔍 Search across multiple fields
+            if (search != null && !search.isEmpty()) {
+                String likeSearch = "%" + search.toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("firstName")), likeSearch),
+                        cb.like(cb.lower(root.get("lastName")), likeSearch),
+                        cb.like(cb.lower(root.get("guardianName")), likeSearch),
+                        cb.like(cb.lower(root.get("guardianPhone")), likeSearch)
+                ));
+            }
+
+            // 🎓 Filter by class
+            if (className != null && !className.isEmpty()) {
+                predicates.add(cb.equal(root.get("className"), className));
+            }
+
+            // 🚻 Filter by gender
+            if (gender != null && !gender.isEmpty()) {
+                predicates.add(cb.equal(root.get("gender"), gender));
+            }
+
+            // 📍 Filter by address/location (case-insensitive, partial)
+            if (location != null && !location.isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("address")), "%" + location.toLowerCase() + "%"));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Student> studentPage = studentRepo.findAll(spec, pageable);
+        return studentPage.map(student -> modelMapper.map(student, StudentDto.class));
     }
+
+
 
     @Override
     public List<StudentDto> getStudentsByName(String firstName) {

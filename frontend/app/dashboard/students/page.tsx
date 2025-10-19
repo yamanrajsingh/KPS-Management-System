@@ -42,13 +42,16 @@ const fetchStudents = async () => {
       params: {
         page: currentPage,
         size: pageSize,
-        sortBy: sortBy,
-        sortDir: sortDir,
+        sortBy,
+        sortDir,
+        search: searchTerm,
+        className: filterClass,
+        gender: filterGender,
+        location: filterLocation,
       },
     });
-    setStudents(res.data.content); // `content` has students for the page
-    setTotalPages(res.data.totalPages); // total pages from backend
-    console.log(res.data);
+    setStudents(res.data.content);
+    setTotalPages(res.data.totalPages);
   } catch (err: any) {
     setError(err.message || "Failed to fetch students");
   }
@@ -58,7 +61,8 @@ const fetchStudents = async () => {
 
 useEffect(() => {
   fetchStudents();
-}, [currentPage, pageSize, sortBy, sortDir]);
+}, [currentPage, pageSize, sortBy, sortDir, searchTerm, filterClass, filterGender, filterLocation]);
+
 
   const handleAddStudent = async (studentData: any) => {
     try {
@@ -99,21 +103,23 @@ useEffect(() => {
   };
 
   // Filters
-  const filteredStudents = students.filter((student) => {
-    const matchesSearch =
-      student.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.rollNo?.includes(searchTerm) ||
-      student.guardianName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.guardianPhone?.includes(searchTerm);
+  // const filteredStudents = students.filter((student) => {
+  //   const matchesSearch =
+  //     student.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     student.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     student.rollNo?.includes(searchTerm) ||
+  //     student.guardianName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     student.guardianPhone?.includes(searchTerm);
 
-    const matchesClass = !filterClass || student.className === filterClass;
-    const matchesGender = !filterGender || student.gender === filterGender;
-    const matchesLocation =
-      !filterLocation || student.address === filterLocation;
+  //   const matchesClass = !filterClass || student.className === filterClass;
+  //   const matchesGender = !filterGender || student.gender === filterGender;
+  //   const matchesLocation =
+  //     !filterLocation || student.address === filterLocation;
 
-    return matchesSearch && matchesClass && matchesGender && matchesLocation;
-  });
+  //   return matchesSearch && matchesClass && matchesGender && matchesLocation;
+  // });
+
+  const filteredStudents = students;
 
 
 
@@ -244,11 +250,18 @@ useEffect(() => {
               className="bg-slate-700/50 border border-slate-600 text-white rounded-md px-3 py-2 text-sm"
             >
               <option value="">All Classes</option>
-              {uniqueClasses.map((cls) => (
-                <option key={cls} value={cls}>
-                  {cls}
-                </option>
-              ))}
+              <option value="NC">NC</option>
+              <option value="KG">KG</option>
+              <option value="I">I</option>
+              <option value="II">II</option>
+              <option value="III">III</option>
+              <option value="IV">IV</option>
+              <option value="V">V</option>
+              <option value="VI">VI</option>
+              <option value="VII">VII</option>
+              <option value="VIII">VIII</option>
+              <option value="IX">IX</option>
+              <option value="X">X</option>
             </select>
             <select
               value={filterGender}
@@ -278,7 +291,7 @@ useEffect(() => {
 
       {/* Student Table */}
       <StudentTable
-        students={filteredStudents}
+        students={students}
         onDelete={handleDeleteStudent}
         onEdit={(s) => {
           setEditingStudent(s);

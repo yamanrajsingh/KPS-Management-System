@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   BarChart,
   Bar,
@@ -18,40 +19,74 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, DollarSign, AlertCircle, Calendar } from "lucide-react"
 
-interface FeeAnalyticsProps {
-  fees: any[]
+interface FeeSummary {
+  totalCollected: number
+  totalPending: number
+  totalOverdue: number
+  totalTransactions: number
+  collectionRate: number
 }
 
-export default function FeeAnalytics({ fees }: FeeAnalyticsProps) {
-  const monthlyData = [
-    { month: "Jan", collected: 250000, pending: 50000, overdue: 20000 },
-    { month: "Feb", collected: 280000, pending: 40000, overdue: 15000 },
-    { month: "Mar", collected: 300000, pending: 30000, overdue: 10000 },
-    { month: "Apr", collected: 320000, pending: 25000, overdue: 8000 },
-    { month: "May", collected: 350000, pending: 20000, overdue: 5000 },
-    { month: "Jun", collected: 380000, pending: 15000, overdue: 3000 },
-  ]
+interface MonthlyFee {
+  month: string
+  collected: number
+  pending: number
+  overdue: number
+}
 
-  const classWiseData = [
-    { class: "Class 1", collected: 150000 },
-    { class: "Class 2", collected: 140000 },
-    { class: "Class 3", collected: 160000 },
-    { class: "Class 4", collected: 155000 },
-    { class: "Class 5", collected: 165000 },
-  ]
+interface ClassWiseFee {
+  className: string
+  collected: number
+}
 
-  const paymentModeData = [
-    { name: "Cash", value: 35, color: "#10b981" },
-    { name: "UPI", value: 45, color: "#3b82f6" },
-    { name: "Bank Transfer", value: 15, color: "#f59e0b" },
-    { name: "Cheque", value: 5, color: "#8b5cf6" },
-  ]
+interface PaymentMode {
+  name: string
+  value: number
+  color?: string
+}
 
-  const totalCollected = fees.filter((f) => f.status === "Paid").reduce((sum, f) => sum + f.amount, 0)
-  const totalPending = fees.filter((f) => f.status === "Pending").reduce((sum, f) => sum + f.amount, 0)
-  const totalOverdue = fees.filter((f) => f.status === "Overdue").reduce((sum, f) => sum + f.amount, 0)
-  const totalTransactions = fees.length
-  const collectionPercentage = Math.round((totalCollected / (totalCollected + totalPending + totalOverdue)) * 100)
+export default function FeeAnalytics() {
+  const [summary, setSummary] = useState<FeeSummary | null>(null)
+  const [monthlyData, setMonthlyData] = useState<MonthlyFee[]>([])
+  const [classWiseData, setClassWiseData] = useState<ClassWiseFee[]>([])
+  const [paymentModeData, setPaymentModeData] = useState<PaymentMode[]>([])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // 1️⃣ Fee Summary
+        const summaryRes = await fetch("http://localhost:8080/api/students/fee/summary")
+        const summaryData: FeeSummary = await summaryRes.json()
+        setSummary(summaryData)
+
+        // 2️⃣ Monthly Fee Trend
+        const monthlyRes = await fetch("http://localhost:8080/api/students/fee/monthly")
+        const monthlyJson: MonthlyFee[] = await monthlyRes.json()
+        setMonthlyData(monthlyJson)
+
+        // 3️⃣ Class-wise Collection
+        const classRes = await fetch("http://localhost:8080/api/students/fee/classwise")
+        const classJson: ClassWiseFee[] = await classRes.json()
+        setClassWiseData(classJson)
+
+        // 4️⃣ Payment Mode Distribution
+        const paymentRes = await fetch("http://localhost:8080/api/students/fee/payment-modes")
+        const paymentJson: PaymentMode[] = await paymentRes.json()
+
+        // Add default colors if not provided
+        const colors = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6"]
+        setPaymentModeData(paymentJson.map((p, i) => ({ ...p, color: colors[i % colors.length] })))
+      } catch (error) {
+        console.error("Error fetching fee analytics:", error)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  console.log("Fee Summary:", summary)
+
+  if (!summary) return <p className="text-white">Loading...</p>
 
   return (
     <div className="space-y-6">
@@ -62,8 +97,7 @@ export default function FeeAnalytics({ fees }: FeeAnalyticsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400">Total Collected</p>
-                <p className="text-2xl font-bold text-white mt-2">₹{(totalCollected / 100000).toFixed(1)}L</p>
-                <p className="text-xs text-green-400 mt-1">↑ 12% from last month</p>
+                <p className="text-2xl font-bold text-white mt-2">₹{(summary.totalCollected / 100000).toFixed(1)}L</p>
               </div>
               <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-green-400" />
@@ -77,10 +111,7 @@ export default function FeeAnalytics({ fees }: FeeAnalyticsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400">Total Pending</p>
-                <p className="text-2xl font-bold text-white mt-2">₹{(totalPending / 100000).toFixed(1)}L</p>
-                <p className="text-xs text-yellow-400 mt-1">
-                  {fees.filter((f) => f.status === "Pending").length} students
-                </p>
+                <p className="text-2xl font-bold text-white mt-2">₹{(summary.totalPending / 100000).toFixed(1)}L</p>
               </div>
               <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
                 <Calendar className="w-6 h-6 text-yellow-400" />
@@ -94,10 +125,7 @@ export default function FeeAnalytics({ fees }: FeeAnalyticsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400">Total Overdue</p>
-                <p className="text-2xl font-bold text-white mt-2">₹{(totalOverdue / 100000).toFixed(2)}L</p>
-                <p className="text-xs text-red-400 mt-1">
-                  {fees.filter((f) => f.status === "Overdue").length} students
-                </p>
+                <p className="text-2xl font-bold text-white mt-2">₹{(summary.totalOverdue / 100000).toFixed(2)}L</p>
               </div>
               <div className="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center">
                 <AlertCircle className="w-6 h-6 text-red-400" />
@@ -111,11 +139,11 @@ export default function FeeAnalytics({ fees }: FeeAnalyticsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400">Collection Rate</p>
-                <p className="text-2xl font-bold text-white mt-2">{collectionPercentage}%</p>
+                <p className="text-2xl font-bold text-white mt-2">{summary.collectionRate}%</p>
                 <div className="w-full bg-slate-700 rounded-full h-2 mt-2">
                   <div
                     className="bg-gradient-to-r from-blue-600 to-cyan-600 h-2 rounded-full"
-                    style={{ width: `${collectionPercentage}%` }}
+                    style={{ width: `${summary.collectionRate}%` }}
                   ></div>
                 </div>
               </div>
@@ -129,17 +157,15 @@ export default function FeeAnalytics({ fees }: FeeAnalyticsProps) {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Fee Collection Trend */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white">Monthly Fee Collection Trend</CardTitle>
-            <CardDescription className="text-slate-400">Last 6 months performance</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                <XAxis stroke="#94a3b8" />
+                <XAxis dataKey="month" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
                 <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569" }} />
                 <Legend />
@@ -151,19 +177,18 @@ export default function FeeAnalytics({ fees }: FeeAnalyticsProps) {
           </CardContent>
         </Card>
 
-        {/* Class-wise Collection Report */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white">Class-wise Collection Report</CardTitle>
-            <CardDescription className="text-slate-400">Fees collected by class</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={classWiseData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                <XAxis stroke="#94a3b8" />
+                <XAxis dataKey="className" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
                 <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569" }} />
+                <Legend />
                 <Bar dataKey="collected" fill="#3b82f6" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -171,11 +196,9 @@ export default function FeeAnalytics({ fees }: FeeAnalyticsProps) {
         </Card>
       </div>
 
-      {/* Payment Mode Distribution */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
           <CardTitle className="text-white">Payment Mode Distribution</CardTitle>
-          <CardDescription className="text-slate-400">Breakdown of payment methods used</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -188,7 +211,6 @@ export default function FeeAnalytics({ fees }: FeeAnalyticsProps) {
                   labelLine={false}
                   label={({ name, value }) => `${name}: ${value}%`}
                   outerRadius={100}
-                  fill="#8884d8"
                   dataKey="value"
                 >
                   {paymentModeData.map((entry, index) => (

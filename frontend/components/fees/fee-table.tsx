@@ -66,6 +66,7 @@ export default function FeeTable({
               <TableHead className="text-slate-300">Paid</TableHead>
               <TableHead className="text-slate-300">Due</TableHead>
               <TableHead className="text-slate-300">Mode</TableHead>
+               <TableHead className="text-slate-300">Payment Date</TableHead>
               <TableHead className="text-slate-300">Status</TableHead>
               <TableHead className="text-slate-300">Actions</TableHead>
             </TableRow>

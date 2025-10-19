@@ -44,12 +44,17 @@ public class StudentController {
     }
 
     @GetMapping("/")
-    public Page<StudentDto> getAllStudents(@RequestParam(defaultValue = "0") int page,
-                                           @RequestParam(defaultValue = "10") int size,
-                                           @RequestParam(defaultValue = "id") String sortBy,
-                                           @RequestParam(defaultValue = "asc") String sortDir) {
+    public Page<StudentDto> getAllStudents(
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String className,
+            @RequestParam(required = false) String gender,
+            @RequestParam(required = false) String location) {
 
-        return  this.studentServices.findAllStudents(page, size, sortBy, sortDir);
+        return this.studentServices.findAllStudents(page, size, sortBy, sortDir, search, className, gender, location);
     }
 
 //    @GetMapping("/search/name/{name}")

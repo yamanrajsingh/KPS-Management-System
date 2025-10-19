@@ -14,16 +14,12 @@ interface FeeFormProps {
 export default function FeeForm({ onSubmit, onCancel, initialData }: FeeFormProps) {
   const [formData, setFormData] = useState({
     studentId: "",
-    studentName: "",
-    class: "",
     academicYear: "2024-2025",
     totalAmount: "",
     amountPaid: "",
     paymentMode: "Cash",
     paymentDate: "",
-    receiptNumber: "",
     remarks: "",
-    status: "Pending",
   })
 
   const [errors, setErrors] = useState<any>({})
@@ -32,16 +28,12 @@ export default function FeeForm({ onSubmit, onCancel, initialData }: FeeFormProp
     if (initialData) {
       setFormData({
         studentId: initialData.studentId,
-        studentName: initialData.studentName,
-        class: initialData.class,
         academicYear: initialData.academicYear,
         totalAmount: initialData.totalAmount.toString(),
         amountPaid: initialData.amountPaid.toString(),
         paymentMode: initialData.paymentMode,
         paymentDate: initialData.paymentDate || "",
-        receiptNumber: initialData.receiptNumber,
         remarks: initialData.remarks,
-        status: initialData.status,
       })
     }
   }, [initialData])
@@ -49,8 +41,6 @@ export default function FeeForm({ onSubmit, onCancel, initialData }: FeeFormProp
   const validateForm = () => {
     const newErrors: any = {}
     if (!formData.studentId.trim()) newErrors.studentId = "Student ID is required"
-    if (!formData.studentName.trim()) newErrors.studentName = "Student name is required"
-    if (!formData.class) newErrors.class = "Class is required"
     if (!formData.totalAmount) newErrors.totalAmount = "Total amount is required"
     if (!formData.amountPaid) newErrors.amountPaid = "Amount paid is required"
     if (Number(formData.amountPaid) > Number(formData.totalAmount))
@@ -67,40 +57,62 @@ export default function FeeForm({ onSubmit, onCancel, initialData }: FeeFormProp
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validateForm()) return
 
-    const totalAmount = Number(formData.totalAmount)
-    const amountPaid = Number(formData.amountPaid)
-    const dueAmount = totalAmount - amountPaid
+    const payload = {
+      academicYear: formData.academicYear,
+      totalAmount: Number(formData.totalAmount),
+      amountPaid: Number(formData.amountPaid),
+      paymentMode: formData.paymentMode,
+      paymentDate: formData.paymentDate || null,
+      remarks: formData.remarks,
+    }
 
-    let status = formData.status
-    if (amountPaid === 0) status = "Pending"
-    else if (amountPaid === totalAmount) status = "Paid"
-    else if (amountPaid > 0) status = "Partially Paid"
+    try {
+      let response
+      if (initialData && initialData.id) {
+        // Update fee
+        response = await fetch(`http://localhost:8080/api/students/fee/${initialData.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      } else {
+        // Create new fee
+        response = await fetch(`http://localhost:8080/api/students/fee/create/${formData.studentId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      }
 
-    onSubmit({
-      ...formData,
-      totalAmount,
-      amountPaid,
-      dueAmount,
-      status,
-    })
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("API Error:", errorData)
+        alert("Something went wrong! Check console.")
+        return
+      }
 
-    setFormData({
-      studentId: "",
-      studentName: "",
-      class: "",
-      academicYear: "2024-2025",
-      totalAmount: "",
-      amountPaid: "",
-      paymentMode: "Cash",
-      paymentDate: "",
-      receiptNumber: "",
-      remarks: "",
-      status: "Pending",
-    })
+      const data = await response.json()
+      onSubmit(data)
+      onCancel()
+
+      // Reset form
+      setFormData({
+        studentId: "",
+        academicYear: "2024-2025",
+        totalAmount: "",
+        amountPaid: "",
+        paymentMode: "Cash",
+        paymentDate: "",
+        remarks: "",
+      })
+    } catch (err) {
+      console.error("Network Error:", err)
+      alert("Network error! Try again.")
+    }
   }
 
   return (
@@ -121,40 +133,6 @@ export default function FeeForm({ onSubmit, onCancel, initialData }: FeeFormProp
           {errors.studentId && <p className="text-red-400 text-xs mt-1">{errors.studentId}</p>}
         </div>
 
-        <div>
-          <label className="text-sm font-medium text-slate-300">Student Name *</label>
-          <Input
-            type="text"
-            name="studentName"
-            value={formData.studentName}
-            onChange={handleChange}
-            placeholder="Student name"
-            className={`mt-1 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 ${
-              errors.studentName ? "border-red-500" : ""
-            }`}
-          />
-          {errors.studentName && <p className="text-red-400 text-xs mt-1">{errors.studentName}</p>}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-slate-300">Class *</label>
-          <select
-            name="class"
-            value={formData.class}
-            onChange={handleChange}
-            className={`mt-1 w-full bg-slate-700/50 border border-slate-600 text-white rounded-md px-3 py-2 ${
-              errors.class ? "border-red-500" : ""
-            }`}
-          >
-            <option value="">Select Class</option>
-            <option value="Class 1">Class 1</option>
-            <option value="Class 2">Class 2</option>
-            <option value="Class 3">Class 3</option>
-            <option value="Class 4">Class 4</option>
-            <option value="Class 5">Class 5</option>
-          </select>
-          {errors.class && <p className="text-red-400 text-xs mt-1">{errors.class}</p>}
-        </div>
 
         <div>
           <label className="text-sm font-medium text-slate-300">Academic Year</label>
@@ -222,33 +200,6 @@ export default function FeeForm({ onSubmit, onCancel, initialData }: FeeFormProp
             onChange={handleChange}
             className="mt-1 bg-slate-700/50 border-slate-600 text-white"
           />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-slate-300">Receipt Number</label>
-          <Input
-            type="text"
-            name="receiptNumber"
-            value={formData.receiptNumber}
-            onChange={handleChange}
-            placeholder="e.g., RCP001"
-            className="mt-1 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-slate-300">Status</label>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="mt-1 w-full bg-slate-700/50 border border-slate-600 text-white rounded-md px-3 py-2"
-          >
-            <option value="Pending">Pending</option>
-            <option value="Partially Paid">Partially Paid</option>
-            <option value="Paid">Paid</option>
-            <option value="Overdue">Overdue</option>
-          </select>
         </div>
       </div>
 

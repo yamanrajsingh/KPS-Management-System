@@ -16,7 +16,7 @@ public interface StudentServices {
     StudentDto deleteStudent(Integer id);
     StudentDto findStudentById(Integer id);
     List<StudentDto> getStudentsByName(String firstName);
-    Page<StudentDto> findAllStudents(Integer page, Integer size, String sortBy, String sortDir);
+    Page<StudentDto> findAllStudents(Integer page, Integer size, String sortBy, String sortDir, String search,String className, String gender,String location);
     List<StudentDto> getStudentsByClassName(String className);
 //    Page<StudentDto> searchStudents(String name, String className);
     Map<String, Long> getStudentStats();

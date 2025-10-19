@@ -44,6 +44,7 @@ public class Fee {
     @Column(length = 20)
     private String status;  // Paid, Pending, Partially Paid
 
+
     @Column(columnDefinition = "TEXT")
     private String remarks;
 

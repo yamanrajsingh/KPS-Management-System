@@ -1,6 +1,7 @@
 package com.school.kps.service;
 
-import com.school.kps.payload.FeeDto;
+import com.school.kps.entity.Fee;
+import com.school.kps.payload.*;
 
 import java.util.List;
 
@@ -27,5 +28,13 @@ public interface FeeServices {
     List<FeeDto> findFeesByStudentName(String name);
 
     List<FeeDto> findFeesByClassNameAndStatus(String className, String status);
+
+    FeeSummaryDto getFeeSummary();
+
+    List<MonthlyFeeDto> getMonthlyFeeTrend();
+
+    List<PaymentModeDto> getPaymentModeDistribution();
+
+    List<ClassWiseFeeDto> getClassWiseCollection();
 
 }

@@ -36,5 +36,5 @@ public interface FeeRepo extends JpaRepository<Fee, Integer> {
 
                                 @Param("status") String status);
 
-
+    List<Fee> findByPaymentMode(String paymentMode);
 }
