@@ -7,6 +7,10 @@ import com.school.kps.repository.StudentRepo;
 import com.school.kps.service.StudentServices;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -72,10 +76,15 @@ public class StudentServicesImpl implements StudentServices {
     }
 
     @Override
-    public List<StudentDto> findAllStudents() {
-        List<Student> students = this.studentRepo.findAll();
-        List<StudentDto> studentDtos = students.stream().map(student -> this.modelMapper.map(student, StudentDto.class)).collect(Collectors.toList());
-        return studentDtos;
+    public Page<StudentDto> findAllStudents(Integer page, Integer size, String sortBy, String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Student> studentPage = this.studentRepo.findAll(pageable);
+
+        // Convert to DTO
+        Page<StudentDto> studentDtoPage = studentPage.map(student -> this.modelMapper.map(student, StudentDto.class));
+        return studentDtoPage;
     }
 
     @Override
@@ -111,29 +120,33 @@ public class StudentServicesImpl implements StudentServices {
         return this.studentRepo.countStudentsByClassName(className);
     }
 
-    @Override
-    public List<StudentDto> searchStudents(String name, String className) {
-        // If both parameters are null or empty, return all students
-        if ((name == null || name.isEmpty()) && (className == null || className.isEmpty())) {
-            return findAllStudents();
-        }
+//    @Override
+//    public Page<StudentDto> searchStudents(String name, String className) {
+//        // If both parameters are null or empty, return all students
+//        if ((name == null || name.isEmpty()) && (className == null || className.isEmpty())) {
+//            Integer page =0;
+//            Integer size =10;
+//            String sortBy = "id";
+//            String sortDir = "asc";
+//            return findAllStudents(page, size, sortBy, sortDir);
+//        }
 
-        // If only name is provided
-        if (name != null && !name.isEmpty() && (className == null || className.isEmpty())) {
-            return this.studentRepo.findByFirstNameContainingIgnoreCase(name)
-                    .stream().map(student -> this.modelMapper.map(student, StudentDto.class)).toList();
-        }
-
-        // If only className is provided
-        if ((name == null || name.isEmpty()) && className != null && !className.isEmpty()) {
-            return this.studentRepo.findByClassNameContainingIgnoreCase(className)
-                    .stream().map(student -> this.modelMapper.map(student, StudentDto.class)).toList();
-        }
-
-        // If both name and className are provided
-        return this.studentRepo.findByFirstNameContainingIgnoreCaseAndClassNameContainingIgnoreCase(name, className)
-                .stream().map(student -> this.modelMapper.map(student, StudentDto.class)).toList();
-    }
+//        // If only name is provided
+//        if (name != null && !name.isEmpty() && (className == null || className.isEmpty())) {
+//            return this.studentRepo.findByFirstNameContainingIgnoreCase(name)
+//                    .stream().map(student -> this.modelMapper.map(student, StudentDto.class)).toList();
+//        }
+//
+//        // If only className is provided
+//        if ((name == null || name.isEmpty()) && className != null && !className.isEmpty()) {
+//            return this.studentRepo.findByClassNameContainingIgnoreCase(className)
+//                    .stream().map(student -> this.modelMapper.map(student, StudentDto.class)).toList();
+//        }
+//
+//        // If both name and className are provided
+//        return this.studentRepo.findByFirstNameContainingIgnoreCaseAndClassNameContainingIgnoreCase(name, className)
+//                .stream().map(student -> this.modelMapper.map(student, StudentDto.class)).toList();
+//    }
     @Override
     public Map<String, Long> getClassWiseStudentCount() {
         return this.studentRepo.findAll().stream()

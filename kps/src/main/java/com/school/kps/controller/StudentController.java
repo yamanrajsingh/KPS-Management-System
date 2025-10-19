@@ -3,6 +3,7 @@ package com.school.kps.controller;
 import com.school.kps.payload.StudentDto;
 import com.school.kps.service.StudentServices;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -43,16 +44,19 @@ public class StudentController {
     }
 
     @GetMapping("/")
-    public ResponseEntity<List<StudentDto>> getAllStudents() {
-        List<StudentDto> student = this.studentServices.findAllStudents();
-        return new ResponseEntity<>(student, HttpStatus.OK);
+    public Page<StudentDto> getAllStudents(@RequestParam(defaultValue = "0") int page,
+                                           @RequestParam(defaultValue = "10") int size,
+                                           @RequestParam(defaultValue = "id") String sortBy,
+                                           @RequestParam(defaultValue = "asc") String sortDir) {
+
+        return  this.studentServices.findAllStudents(page, size, sortBy, sortDir);
     }
 
-    @GetMapping("/search/name/{name}")
-    public ResponseEntity<List<StudentDto>> getStudentByName(@PathVariable String name) {
-        List<StudentDto> student = this.studentServices.getStudentsByName(name);
-        return new ResponseEntity<>(student, HttpStatus.OK);
-    }
+//    @GetMapping("/search/name/{name}")
+//    public ResponseEntity<List<StudentDto>> getStudentByName(@PathVariable String name) {
+//        List<StudentDto> student = this.studentServices.getStudentsByName(name);
+//        return new ResponseEntity<>(student, HttpStatus.OK);
+//    }
 
     @GetMapping("/search/class/{className}")
     public ResponseEntity<List<StudentDto>> getStudentsByClassName(@PathVariable String className) {
@@ -60,11 +64,11 @@ public class StudentController {
         return new ResponseEntity<>(student, HttpStatus.OK);
     }
 
-    @GetMapping("/search/{name}/{className}")
-    public ResponseEntity<List<StudentDto>> getStudentsByName(@PathVariable String name, @PathVariable String className) {
-        List<StudentDto> student = this.studentServices.searchStudents(name, className);
-        return new ResponseEntity<>(student, HttpStatus.OK);
-    }
+//    @GetMapping("/search/{name}/{className}")
+//    public ResponseEntity<List<StudentDto>> getStudentsByName(@PathVariable String name, @PathVariable String className) {
+//        List<StudentDto> student = this.studentServices.searchStudents(name, className);
+//        return new ResponseEntity<>(student, HttpStatus.OK);
+//    }
 
     @GetMapping("/stats")
     public Map<String, Long> getStudentStats() {

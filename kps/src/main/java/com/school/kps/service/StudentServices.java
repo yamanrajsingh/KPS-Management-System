@@ -2,6 +2,7 @@ package com.school.kps.service;
 
 import com.school.kps.entity.Student;
 import com.school.kps.payload.StudentDto;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,9 +16,9 @@ public interface StudentServices {
     StudentDto deleteStudent(Integer id);
     StudentDto findStudentById(Integer id);
     List<StudentDto> getStudentsByName(String firstName);
-    List<StudentDto> findAllStudents();
+    Page<StudentDto> findAllStudents(Integer page, Integer size, String sortBy, String sortDir);
     List<StudentDto> getStudentsByClassName(String className);
-    List<StudentDto> searchStudents(String name, String className);
+//    Page<StudentDto> searchStudents(String name, String className);
     Map<String, Long> getStudentStats();
     long getStudentCountByClassName(String className);
     Map<String, Long> getClassWiseStudentCount();

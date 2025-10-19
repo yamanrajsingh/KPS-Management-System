@@ -17,7 +17,7 @@ public interface FeeRepo extends JpaRepository<Fee, Integer> {
     List<Fee> findByStatus(String status);
 
 
-    @Query("SELECT f FROM Fee f WHERE f.student.className = :className")
+    @Query("SELECT f FROM Fee f WHERE  f.student.className = :className")
     List<Fee> findByStudentClassName(String className);
 
     // Find fees by student name (first name or last name)
