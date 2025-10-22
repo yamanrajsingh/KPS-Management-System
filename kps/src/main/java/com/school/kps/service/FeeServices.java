@@ -9,7 +9,7 @@ public interface FeeServices {
 
     FeeDto addFee(FeeDto feeDto, Integer studentId);
 
-    FeeDto updateFee(Integer id, FeeDto feeDto);
+    FeeDto updateFee( FeeDto feeDto,Integer id);
 
     FeeDto deleteFee(Integer id);
 

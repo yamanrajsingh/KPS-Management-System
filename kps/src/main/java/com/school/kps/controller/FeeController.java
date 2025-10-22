@@ -25,7 +25,7 @@ public class FeeController {
 
     @PutMapping("/{feeId}") //*********** Think and Do
     public ResponseEntity<FeeDto> updateFee(@RequestBody FeeDto feeDto, @PathVariable Integer feeId) {
-        FeeDto fee = this.feeServices.updateFee(feeId, feeDto);
+        FeeDto fee = this.feeServices.updateFee(feeDto,feeId);
         return new ResponseEntity<>(fee, HttpStatus.OK);
     }
 

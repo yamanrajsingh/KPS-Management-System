@@ -82,7 +82,7 @@ public class FeeServicesImpl implements FeeServices {
 
         // Include student info in DTO if needed
         savedDto.setStudentId(savedFee.getStudent().getId());
-        savedDto.setStudentName(savedFee.getStudent().getFirstName() + " " + savedFee.getStudent().getLastName());
+
 
         return savedDto;
     }
@@ -96,20 +96,19 @@ public class FeeServicesImpl implements FeeServices {
 
 
     @Override
-    public FeeDto updateFee(Integer id, FeeDto feeDto) {
+    public FeeDto updateFee(FeeDto feeDto,Integer id) {
         Fee fee = this.feeRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("fee", "id", id));
-        if (feeDto.getStudentId() != null) {
-            Student student = this.studentRepo.findById(feeDto.getStudentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Student", "id", feeDto.getStudentId()));
-            fee.setStudent(student);
-        }
+//        if (feeDto.getStudentId() != null) {
+//            Student student = this.studentRepo.findById(feeDto.getStudentId())
+//                    .orElseThrow(() -> new ResourceNotFoundException("Student", "id", feeDto.getStudentId()));
+//            fee.setStudent(student);
+//        }
         fee.setAcademicYear(feeDto.getAcademicYear());
         fee.setTotalAmount(feeDto.getTotalAmount());
         fee.setAmountPaid(feeDto.getAmountPaid());
         fee.setDueAmount(feeDto.getTotalAmount().subtract(feeDto.getAmountPaid()));
         fee.setPaymentDate(feeDto.getPaymentDate());
         fee.setPaymentMode(feeDto.getPaymentMode());
-        fee.setReceiptNumber(feeDto.getReceiptNumber());
         fee.setRemarks(feeDto.getRemarks());
 
 
@@ -123,7 +122,6 @@ public class FeeServicesImpl implements FeeServices {
 
         Fee updatedFee = this.feeRepo.save(fee);
         return this.modelMapper.map(updatedFee, FeeDto.class);
-
 
     }
 

@@ -31,38 +31,44 @@ export default function StudentsPage() {
   const [currentPage, setCurrentPage] = useState(0); // zero-based page
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
-const [sortBy, setSortBy] = useState("id");
-const [sortDir, setSortDir] = useState("asc");
+  const [sortBy, setSortBy] = useState("id");
+  const [sortDir, setSortDir] = useState("asc");
 
+  const fetchStudents = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/", {
+        params: {
+          page: currentPage,
+          size: pageSize,
+          sortBy,
+          sortDir,
+          search: searchTerm,
+          className: filterClass,
+          gender: filterGender,
+          location: filterLocation,
+        },
+      });
+      setStudents(res.data.content);
+      setTotalPages(res.data.totalPages);
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch students");
+    }
+    setLoading(false);
+  };
 
-const fetchStudents = async () => {
-  setLoading(true);
-  try {
-    const res = await api.get("/", {
-      params: {
-        page: currentPage,
-        size: pageSize,
-        sortBy,
-        sortDir,
-        search: searchTerm,
-        className: filterClass,
-        gender: filterGender,
-        location: filterLocation,
-      },
-    });
-    setStudents(res.data.content);
-    setTotalPages(res.data.totalPages);
-  } catch (err: any) {
-    setError(err.message || "Failed to fetch students");
-  }
-  setLoading(false);
-};
-
-
-useEffect(() => {
-  fetchStudents();
-}, [currentPage, pageSize, sortBy, sortDir, searchTerm, filterClass, filterGender, filterLocation]);
-
+  useEffect(() => {
+    fetchStudents();
+  }, [
+    currentPage,
+    pageSize,
+    sortBy,
+    sortDir,
+    searchTerm,
+    filterClass,
+    filterGender,
+    filterLocation,
+  ]);
 
   const handleAddStudent = async (studentData: any) => {
     try {
@@ -120,8 +126,6 @@ useEffect(() => {
   // });
 
   const filteredStudents = students;
-
-
 
   const uniqueClasses = [...new Set(students.map((s) => s.className))].sort();
 
@@ -300,37 +304,39 @@ useEffect(() => {
         onView={(s) => handleViewStudent(s.id)}
       />
       <div className="flex items-center justify-center gap-2 mt-4">
-  <Button
-    variant="outline"
-    size="sm"
-    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-    disabled={currentPage === 0}
-  >
-    Previous
-  </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+          disabled={currentPage === 0}
+        >
+          Previous
+        </Button>
 
-  <div className="flex gap-1">
-    {Array.from({ length: totalPages }, (_, i) => i).map((page) => (
-      <Button
-        key={page}
-        size="sm"
-        variant={currentPage === page ? "default" : "outline"}
-        onClick={() => setCurrentPage(page)}
-      >
-        {page + 1}
-      </Button>
-    ))}
-  </div>
+        <div className="flex gap-1">
+          {Array.from({ length: totalPages }, (_, i) => i).map((page) => (
+            <Button
+              key={page}
+              size="sm"
+              variant={currentPage === page ? "default" : "outline"}
+              onClick={() => setCurrentPage(page)}
+            >
+              {page + 1}
+            </Button>
+          ))}
+        </div>
 
-  <Button
-    variant="outline"
-    size="sm"
-    onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
-    disabled={currentPage === totalPages - 1}
-  >
-    Next
-  </Button>
-</div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            setCurrentPage(Math.min(totalPages - 1, currentPage + 1))
+          }
+          disabled={currentPage === totalPages - 1}
+        >
+          Next
+        </Button>
+      </div>
 
       {/* Student Profile */}
       {selectedStudent && (

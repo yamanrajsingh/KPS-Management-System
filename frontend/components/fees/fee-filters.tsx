@@ -58,12 +58,19 @@ export default function FeeFilters({ onFilterChange }: FeeFiltersProps) {
                 onChange={(e) => handleFilterChange("class", e.target.value)}
                 className="mt-1 w-full bg-slate-700/50 border border-slate-600 text-white rounded-md px-3 py-2 text-sm"
               >
-                <option value="">All Classes</option>
-                <option value="Class 1">Class 1</option>
-                <option value="Class 2">Class 2</option>
-                <option value="Class 3">Class 3</option>
-                <option value="Class 4">Class 4</option>
-                <option value="Class 5">Class 5</option>
+              <option value="">All Classes</option>
+              <option value="NC">NC</option>
+              <option value="KG">KG</option>
+              <option value="I">I</option>
+              <option value="II">II</option>
+              <option value="III">III</option>
+              <option value="IV">IV</option>
+              <option value="V">V</option>
+              <option value="VI">VI</option>
+              <option value="VII">VII</option>
+              <option value="VIII">VIII</option>
+              <option value="IX">IX</option>
+              <option value="X">X</option>
               </select>
             </div>
 

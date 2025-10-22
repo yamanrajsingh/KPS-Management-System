@@ -1,6 +1,6 @@
 package com.school.kps.payload;
 
-import com.school.kps.entity.Student;
+
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -46,8 +46,6 @@ public class FeeDto {
 
     @Size(max = 20, message = "Status must be at most 20 characters")
     private String status;  // Paid, Pending, Partially Paid
-    @Size(max = 200, message = "Name must be at most 20 characters")
-    private  String StudentName;
 
 ;  // Paid, Pending, Partially Paid
 
