@@ -1,12 +1,17 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { AlertCircle } from "lucide-react"
 
 export default function LoginPage() {
@@ -22,16 +27,29 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      if (email && password) {
-        // Store auth token in localStorage
-        localStorage.setItem("authToken", "mock-jwt-token")
+      // Fetch admin data from backend
+      const res = await fetch("http://localhost:8080/api/admin")
+      if (!res.ok) {
+        throw new Error("Failed to connect to server")
+      }
+
+      const data = await res.json()
+
+      // Assuming your API returns an array with one admin object
+      const admin = data[0]
+
+      if (email === admin.email && password === admin.password) {
+        // Store auth info in localStorage
+        localStorage.setItem("authToken", "real-admin-token")
         localStorage.setItem("userEmail", email)
+
         router.push("/dashboard")
       } else {
-        setError("Please enter both email and password")
+        setError("Invalid email or password")
       }
     } catch (err) {
-      setError("Login failed. Please try again.")
+      console.error("Login error:", err)
+      setError("Unable to connect to the server. Please try again later.")
     } finally {
       setIsLoading(false)
     }
@@ -48,7 +66,9 @@ export default function LoginPage() {
               </div>
             </div>
             <CardTitle className="text-2xl text-white">School Admin</CardTitle>
-            <CardDescription className="text-slate-400">Secure access to school management system</CardDescription>
+            <CardDescription className="text-slate-400">
+              Secure access to school management system
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
@@ -94,7 +114,9 @@ export default function LoginPage() {
 
             <div className="mt-6 pt-6 border-t border-slate-700">
               <p className="text-xs text-slate-500 text-center">
-                Demo credentials: Use any email and password to login
+                Use credentials: <br />
+                <span className="text-blue-400">Email:</span> kps@gmail.com <br />
+                <span className="text-blue-400">Password:</span> adminkps
               </p>
             </div>
           </CardContent>
