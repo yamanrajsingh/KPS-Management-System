@@ -12,10 +12,13 @@ import lombok.NoArgsConstructor;
 public class Admin {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+
     @Column(name = "user_id")
     private int id;
-    @Column(length = 100, nullable = false, name = "user")
-    private String name;
+
+    @Column(length = 100, nullable = false, name = "email")
+    private String email;
+
     @Column(length = 100, nullable = false, name = "password")
     private String password;
 }
