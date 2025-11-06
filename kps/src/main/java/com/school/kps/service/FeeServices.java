@@ -2,6 +2,7 @@ package com.school.kps.service;
 
 import com.school.kps.entity.Fee;
 import com.school.kps.payload.*;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -9,11 +10,13 @@ public interface FeeServices {
 
     FeeDto addFee(FeeDto feeDto, Integer studentId);
 
-    FeeDto updateFee( FeeDto feeDto,Integer id);
+    FeeDto updateFee(FeeDto feeDto, Integer id);
 
     FeeDto deleteFee(Integer id);
 
-    List<FeeDto> getAllFees();
+    Page<FeeDto> getAllFees(int pageNumber, int pageSize, String sortBy, String sortDir,
+                            String className, String paymentStatus, String paymentMode,
+                            String dateFrom, String dateTo, String search);
 
     FeeDto getFeeById(Integer id);
 

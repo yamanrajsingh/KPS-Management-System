@@ -3,6 +3,7 @@ package com.school.kps.controller;
 import com.school.kps.payload.*;
 import com.school.kps.service.FeeServices;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,7 @@ public class FeeController {
 
     @PutMapping("/{feeId}") //*********** Think and Do
     public ResponseEntity<FeeDto> updateFee(@RequestBody FeeDto feeDto, @PathVariable Integer feeId) {
-        FeeDto fee = this.feeServices.updateFee(feeDto,feeId);
+        FeeDto fee = this.feeServices.updateFee(feeDto, feeId);
         return new ResponseEntity<>(fee, HttpStatus.OK);
     }
 
@@ -36,9 +37,23 @@ public class FeeController {
     }
 
     @GetMapping("/")
-    public ResponseEntity<List<FeeDto>> getAllFees() {
-        List<FeeDto> fee = this.feeServices.getAllFees();
-        return new ResponseEntity<>(fee, HttpStatus.OK);
+    public ResponseEntity<Page<FeeDto>> getAllFees(
+            @RequestParam(value = "pageNumber", defaultValue = "0") int pageNumber,
+            @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
+            @RequestParam(value = "sortBy", defaultValue = "id") String sortBy,
+            @RequestParam(value = "sortDir", defaultValue = "asc") String sortDir,
+            @RequestParam(value = "className", required = false) String className,
+            @RequestParam(value = "paymentStatus", required = false) String paymentStatus,
+            @RequestParam(value = "paymentMode", required = false) String paymentMode,
+            @RequestParam(value = "dateFrom", required = false) String dateFrom,
+            @RequestParam(value = "dateTo", required = false) String dateTo,
+            @RequestParam(value = "search", required = false) String search
+    ) {
+        Page<FeeDto> fees = this.feeServices.getAllFees(
+                pageNumber, pageSize, sortBy, sortDir,
+                className, paymentStatus, paymentMode, dateFrom, dateTo, search
+        );
+        return ResponseEntity.ok(fees);
     }
 
     @GetMapping("/fId/{feeId}")
@@ -79,10 +94,11 @@ public class FeeController {
     }
 
     @GetMapping("/className/{className}/status/{status}")
-    public ResponseEntity<List<FeeDto>>  findFeesByClassNameAndStatus(@PathVariable String className, @PathVariable String status ){
+    public ResponseEntity<List<FeeDto>> findFeesByClassNameAndStatus(@PathVariable String className, @PathVariable String status) {
         List<FeeDto> feeDtos = this.feeServices.findFeesByClassNameAndStatus(className, status);
         return new ResponseEntity<>(feeDtos, HttpStatus.OK);
     }
+
     // 1️⃣ Fee Summary
     @GetMapping("/summary")
     public ResponseEntity<FeeSummaryDto> getFeeSummary() {

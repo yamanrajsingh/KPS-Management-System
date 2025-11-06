@@ -9,6 +9,8 @@ import com.school.kps.repository.StudentRepo;
 import com.school.kps.service.FeeServices;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -96,7 +98,7 @@ public class FeeServicesImpl implements FeeServices {
 
 
     @Override
-    public FeeDto updateFee(FeeDto feeDto,Integer id) {
+    public FeeDto updateFee(FeeDto feeDto, Integer id) {
         Fee fee = this.feeRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("fee", "id", id));
 //        if (feeDto.getStudentId() != null) {
 //            Student student = this.studentRepo.findById(feeDto.getStudentId())
@@ -132,11 +134,48 @@ public class FeeServicesImpl implements FeeServices {
         return this.modelMapper.map(fee, FeeDto.class);
     }
 
-    @Override
-    public List<FeeDto> getAllFees() {
-        List<Fee> fees = this.feeRepo.findAll();
-        return fees.stream().map(fee -> this.modelMapper.map(fee, FeeDto.class)).collect(Collectors.toList());
+    public Page<FeeDto> getAllFees(
+            int pageNumber, int pageSize, String sortBy, String sortDir,
+            String className, String paymentStatus, String paymentMode,
+            String dateFrom, String dateTo, String search
+    ) {
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+
+        Specification<Fee> spec = (Specification<Fee>) (root, query, cb) -> cb.conjunction();
+
+
+        if (className != null && !className.isEmpty())
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("student").get("className"), className));
+
+        if (paymentStatus != null && !paymentStatus.isEmpty())
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), paymentStatus));
+
+        if (paymentMode != null && !paymentMode.isEmpty())
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("paymentMode"), paymentMode));
+
+        if (dateFrom != null && !dateFrom.isEmpty())
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("paymentDate"), dateFrom));
+
+        if (dateTo != null && !dateTo.isEmpty())
+            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("paymentDate"), dateTo));
+
+        if (search != null && !search.isEmpty())
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("student").get("firstName")), "%" + search.toLowerCase() + "%"),
+                    cb.like(cb.lower(root.get("student").get("lastName")), "%" + search.toLowerCase() + "%"),
+                    cb.like(cb.lower(root.get("receiptNumber")), "%" + search.toLowerCase() + "%")
+            ));
+
+        Page<Fee> feePage = feeRepo.findAll(spec, pageable);
+        List<FeeDto> feeDtos = feePage.getContent()
+                .stream()
+                .map(f -> modelMapper.map(f, FeeDto.class))
+                .toList();
+
+        return new PageImpl<>(feeDtos, pageable, feePage.getTotalElements());
     }
+
 
     @Override
     public FeeDto getFeeById(Integer id) {
