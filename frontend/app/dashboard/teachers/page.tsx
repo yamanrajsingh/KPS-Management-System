@@ -1,7 +1,13 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useState } from "react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import TeacherTable from "@/components/teachers/teacher-table"
@@ -11,110 +17,82 @@ import TeacherFilters from "@/components/teachers/teacher-filters"
 import TeacherProfile from "@/components/teachers/teacher-profile"
 import { Plus, Search, Download } from "lucide-react"
 
+interface Teacher {
+  id: string
+  firstName?: string
+  lastName?: string
+  name: string
+  email?: string
+  subject?: string
+  qualification?: string
+  phone?: string
+  joinDate?: string
+  dob?: string
+  gender?: string
+  assignedClass?: string
+  address?: string
+  status?: string
+  lastUpdated?: string
+}
+
+const API_BASE = "http://localhost:8080/api/teachers"
+
 export default function TeachersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [showForm, setShowForm] = useState(false)
-  const [editingTeacher, setEditingTeacher] = useState(null)
-  const [selectedTeacher, setSelectedTeacher] = useState(null)
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null)
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null)
   const [filters, setFilters] = useState({
     subject: "",
     class: "",
     gender: "",
     status: "All",
   })
-  const [teachers, setTeachers] = useState([
-    {
-      id: "T001",
-      firstName: "Rajesh",
-      lastName: "Kumar",
-      name: "Dr. Rajesh Kumar",
-      email: "rajesh@school.com",
-      subject: "Mathematics",
-      qualification: "M.Sc, B.Ed",
-      phone: "9876543220",
-      joinDate: "2020-06-15",
-      dob: "1985-03-20",
-      gender: "Male",
-      assignedClass: "10th A",
-      address: "123 Main St, City",
-      status: "Active",
-      lastUpdated: "2024-02-15",
-    },
-    {
-      id: "T002",
-      firstName: "Priya",
-      lastName: "Sharma",
-      name: "Ms. Priya Sharma",
-      email: "priya.s@school.com",
-      subject: "English",
-      qualification: "M.A, B.Ed",
-      phone: "9876543221",
-      joinDate: "2021-07-20",
-      dob: "1988-05-10",
-      gender: "Female",
-      assignedClass: "9th B",
-      address: "456 Oak Ave, City",
-      status: "Active",
-      lastUpdated: "2024-02-15",
-    },
-    {
-      id: "T003",
-      firstName: "Vikram",
-      lastName: "Singh",
-      name: "Mr. Vikram Singh",
-      email: "vikram.s@school.com",
-      subject: "Science",
-      qualification: "M.Sc, B.Ed",
-      phone: "9876543222",
-      joinDate: "2019-08-10",
-      dob: "1982-11-15",
-      gender: "Male",
-      assignedClass: "10th B",
-      address: "789 Pine Rd, City",
-      status: "Active",
-      lastUpdated: "2024-02-15",
-    },
-    {
-      id: "T004",
-      firstName: "Anjali",
-      lastName: "Patel",
-      name: "Ms. Anjali Patel",
-      email: "anjali@school.com",
-      subject: "History",
-      qualification: "M.A, B.Ed",
-      phone: "9876543223",
-      joinDate: "2022-01-05",
-      dob: "1990-07-22",
-      gender: "Female",
-      assignedClass: "8th A",
-      address: "321 Elm St, City",
-      status: "Active",
-      lastUpdated: "2024-02-15",
-    },
-    {
-      id: "T005",
-      firstName: "Arjun",
-      lastName: "Desai",
-      name: "Mr. Arjun Desai",
-      email: "arjun@school.com",
-      subject: "Physical Education",
-      qualification: "B.P.Ed",
-      phone: "9876543224",
-      joinDate: "2021-03-12",
-      dob: "1987-09-08",
-      gender: "Male",
-      assignedClass: "All Classes",
-      address: "654 Birch Ln, City",
-      status: "Active",
-      lastUpdated: "2024-02-15",
-    },
-  ])
+  const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // fetch all teachers
+  const fetchTeachers = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/`)
+      if (!res.ok) throw new Error(`Failed to fetch teachers: ${res.status}`)
+      const data = await res.json()
+      // assume backend returns array of teachers
+      setTeachers(Array.isArray(data) ? data : [])
+    } catch (err: any) {
+      console.error(err)
+      alert("Error loading teachers. See console for details.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchTeachers()
+  }, [])
+
+  // fetch single teacher for view (used when user clicks view profile)
+  const fetchTeacherById = async (id: string) => {
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/${encodeURIComponent(id)}`)
+      if (!res.ok) throw new Error(`Failed to fetch teacher ${id}: ${res.status}`)
+      const data = await res.json()
+      setSelectedTeacher(data)
+    } catch (err) {
+      console.error(err)
+      alert("Error loading teacher profile.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredTeachers = teachers.filter((teacher) => {
     const matchesSearch =
-      teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.subject.toLowerCase().includes(searchTerm.toLowerCase())
+      teacher.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      teacher.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      teacher.subject?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesSubject = !filters.subject || teacher.subject === filters.subject
     const matchesClass = !filters.class || teacher.assignedClass === filters.class
@@ -124,48 +102,102 @@ export default function TeachersPage() {
     return matchesSearch && matchesSubject && matchesClass && matchesGender && matchesStatus
   })
 
-  const handleAddTeacher = (newTeacher: any) => {
-    if (editingTeacher) {
-      setTeachers(
-        teachers.map((t) =>
-          t.id === editingTeacher.id
-            ? {
-                ...newTeacher,
-                id: editingTeacher.id,
-                lastUpdated: new Date().toISOString().split("T")[0],
-              }
-            : t,
-        ),
-      )
-      setEditingTeacher(null)
-    } else {
-      const teacher = {
-        ...newTeacher,
-        id: `T${String(teachers.length + 1).padStart(3, "0")}`,
-        lastUpdated: new Date().toISOString().split("T")[0],
+  // Create or Update teacher via API
+  const handleAddTeacher = async (newTeacher: any) => {
+    try {
+      // if editingTeacher exists -> update
+      if (editingTeacher) {
+        const id = editingTeacher.id
+        const res = await fetch(`${API_BASE}/${encodeURIComponent(id)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...newTeacher }), // send fields to backend
+        })
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error(`Update failed: ${res.status} ${text}`)
+        }
+        const updated = await res.json()
+        // update local list
+        setTeachers((prev) => prev.map((t) => (t.id === id ? updated : t)))
+        setEditingTeacher(null)
+      } else {
+        // create new teacher
+        const res = await fetch(`${API_BASE}/create`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newTeacher),
+        })
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error(`Create failed: ${res.status} ${text}`)
+        }
+        const created = await res.json()
+        // backend may return created teacher with id — prefer that, fallback to local id generation
+        const teacherToAdd: Teacher = {
+          ...(created || {}),
+          id: created?.id || `T${String(teachers.length + 1).padStart(3, "0")}`,
+        }
+        setTeachers((prev) => [...prev, teacherToAdd])
       }
-      setTeachers([...teachers, teacher])
-    }
-    setShowForm(false)
-  }
-
-  const handleDeleteTeacher = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this teacher?")) {
-      setTeachers(teachers.filter((t) => t.id !== id))
+      setShowForm(false)
+    } catch (err: any) {
+      console.error(err)
+      alert("Error saving teacher. See console for details.")
     }
   }
 
-  const handleEditTeacher = (teacher: any) => {
+  // Delete teacher via API
+  const handleDeleteTeacher = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this teacher?")) return
+    try {
+      const res = await fetch(`${API_BASE}/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`Delete failed: ${res.status} ${text}`)
+      }
+      // remove from local list
+      setTeachers((prev) => prev.filter((t) => t.id !== id))
+      // if deleted teacher was selected, close profile
+      if (selectedTeacher?.id === id) setSelectedTeacher(null)
+    } catch (err) {
+      console.error(err)
+      alert("Error deleting teacher.")
+    }
+  }
+
+  // Edit (open form with teacher data)
+  const handleEditTeacher = (teacher: Teacher) => {
     setEditingTeacher(teacher)
     setShowForm(true)
   }
 
+  // View profile (fetch full teacher data)
+  const handleViewProfile = (teacher: Teacher) => {
+    // if teacher already has full data you can set it directly, otherwise fetch
+    // We'll fetch to ensure we have freshest detail from backend
+    if (!teacher.id) return
+    fetchTeacherById(teacher.id)
+  }
+
+  // Export currently filtered teachers to CSV (uses client-side data)
   const handleExport = () => {
     const csv = [
       ["ID", "Name", "Email", "Subject", "Class", "Gender", "Phone", "Status"],
-      ...filteredTeachers.map((t) => [t.id, t.name, t.email, t.subject, t.assignedClass, t.gender, t.phone, t.status]),
+      ...filteredTeachers.map((t) => [
+        t.id,
+        t.name ?? "",
+        t.email ?? "",
+        t.subject ?? "",
+        t.assignedClass ?? "",
+        t.gender ?? "",
+        t.phone ?? "",
+        t.status ?? "",
+      ]),
     ]
-      .map((row) => row.join(","))
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
       .join("\n")
 
     const blob = new Blob([csv], { type: "text/csv" })
@@ -174,6 +206,7 @@ export default function TeachersPage() {
     a.href = url
     a.download = "teachers.csv"
     a.click()
+    window.URL.revokeObjectURL(url)
   }
 
   return (
@@ -181,7 +214,9 @@ export default function TeachersPage() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Teachers</h1>
-          <p className="text-slate-400 mt-1 text-sm md:text-base">Manage teacher records and assignments</p>
+          <p className="text-slate-400 mt-1 text-sm md:text-base">
+            Manage teacher records and assignments
+          </p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           <Button
@@ -212,7 +247,9 @@ export default function TeachersPage() {
       {showForm && (
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
-            <CardTitle className="text-white">{editingTeacher ? "Edit Teacher" : "Add New Teacher"}</CardTitle>
+            <CardTitle className="text-white">
+              {editingTeacher ? "Edit Teacher" : "Add New Teacher"}
+            </CardTitle>
             <CardDescription className="text-slate-400">
               {editingTeacher ? "Update teacher details below" : "Fill in the teacher details below"}
             </CardDescription>
@@ -251,8 +288,9 @@ export default function TeachersPage() {
             teachers={filteredTeachers}
             onDelete={handleDeleteTeacher}
             onEdit={handleEditTeacher}
-            onViewProfile={setSelectedTeacher}
+            onViewProfile={handleViewProfile}
           />
+          {loading && <div className="text-sm text-slate-400 mt-2">Loading...</div>}
         </CardContent>
       </Card>
 

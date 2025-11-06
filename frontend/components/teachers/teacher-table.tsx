@@ -2,7 +2,14 @@
 
 import { Trash2, Eye, Edit } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 interface Teacher {
   id: string
@@ -37,20 +44,34 @@ export default function TeacherTable({
             <TableHead className="text-slate-300">Name</TableHead>
             <TableHead className="text-slate-300">Subject</TableHead>
             <TableHead className="text-slate-300">Class</TableHead>
-            <TableHead className="text-slate-300">Gender</TableHead>
+            <TableHead className="text-slate-300">Qualification</TableHead>
+            <TableHead className="text-slate-300">Joining Date</TableHead>
             <TableHead className="text-slate-300">Phone</TableHead>
             <TableHead className="text-slate-300">Status</TableHead>
             <TableHead className="text-slate-300">Actions</TableHead>
           </TableRow>
         </TableHeader>
+
         <TableBody>
           {teachers.map((teacher) => (
-            <TableRow key={teacher.id} className="border-slate-700 hover:bg-slate-700/50">
-              <TableCell className="text-slate-300 font-medium">{teacher.id}</TableCell>
+            <TableRow
+              key={teacher.id}
+              className="border-slate-700 hover:bg-slate-700/50"
+            >
+              <TableCell className="text-slate-300 font-medium">
+                {teacher.id}
+              </TableCell>
               <TableCell className="text-slate-300">{teacher.name}</TableCell>
               <TableCell className="text-slate-300">{teacher.subject}</TableCell>
-              <TableCell className="text-slate-300">{teacher.assignedClass}</TableCell>
-              <TableCell className="text-slate-300">{teacher.gender}</TableCell>
+              <TableCell className="text-slate-300">
+                {teacher.assignedClass}
+              </TableCell>
+              <TableCell className="text-slate-300">
+                {teacher.qualification}
+              </TableCell>
+              <TableCell className="text-slate-300">
+                {teacher.joinDate}
+              </TableCell>
               <TableCell className="text-slate-300">{teacher.phone}</TableCell>
               <TableCell>
                 <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
@@ -67,6 +88,7 @@ export default function TeacherTable({
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
+
                   <Button
                     variant="ghost"
                     size="sm"
@@ -75,6 +97,7 @@ export default function TeacherTable({
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
+
                   <Button
                     variant="ghost"
                     size="sm"

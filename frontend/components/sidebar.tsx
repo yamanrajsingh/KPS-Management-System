@@ -26,6 +26,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
     window.location.href = "/"
   }
 
+  // Only call onClose when an onClose is provided and viewport is small
+  const handleNavClick = () => {
+    if (!onClose) return
+    if (typeof window === "undefined") return
+    if (window.innerWidth < 768) {
+      onClose()
+    }
+  }
+
   return (
     <aside className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col h-full">
       <div className="p-6 border-b border-slate-700 flex items-center justify-between">
@@ -38,7 +47,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <p className="text-xs text-slate-400">Management System</p>
           </div>
         </div>
-        <button onClick={onClose} className="md:hidden text-slate-400 hover:text-white">
+        <button onClick={() => onClose?.()} className="md:hidden text-slate-400 hover:text-white">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -48,7 +57,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           const Icon = item.icon
           const isActive = pathname === item.href
           return (
-            <Link key={item.href} href={item.href} onClick={onClose}>
+            <Link key={item.href} href={item.href} onClick={handleNavClick}>
               <Button
                 variant={isActive ? "default" : "ghost"}
                 className={`w-full justify-start gap-3 ${
@@ -58,7 +67,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 }`}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className="hidden sm:inline">{item.label}</span>
+                {/* show label on all screen sizes */}
+                <span className="ml-2">{item.label}</span>
               </Button>
             </Link>
           )
@@ -72,9 +82,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
           className="w-full justify-start gap-3 text-slate-300 hover:text-red-400 hover:bg-red-500/10"
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
-          <span className="hidden sm:inline">Logout</span>
+          <span className="ml-2">Logout</span>
         </Button>
       </div>
     </aside>
   )
 }
+  

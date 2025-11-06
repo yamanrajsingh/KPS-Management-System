@@ -126,7 +126,7 @@ export default function TeacherAnalytics({ teachers }: { teachers: any[] }) {
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
-                data={genderDistribution}
+                data={genderDistribution}  
                 cx="50%"
                 cy="50%"
                 labelLine={false}

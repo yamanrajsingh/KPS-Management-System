@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   BarChart,
@@ -14,8 +14,14 @@ import {
   PieChart,
   Pie,
   Cell,
-} from "recharts"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+} from "recharts";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Users,
   BookOpen,
@@ -30,7 +36,7 @@ import {
   Calendar,
   Award,
   BarChart3,
-} from "lucide-react"
+} from "lucide-react";
 
 const studentData = [
   { month: "Jan", students: 120 },
@@ -39,13 +45,13 @@ const studentData = [
   { month: "Apr", students: 165 },
   { month: "May", students: 180 },
   { month: "Jun", students: 195 },
-]
+];
 
 const feeStatusData = [
   { name: "Collected", value: 75, color: "#10b981" },
   { name: "Pending", value: 20, color: "#f59e0b" },
   { name: "Overdue", value: 5, color: "#ef4444" },
-]
+];
 
 const feeCollectionData = [
   { month: "Jan", collected: 12.5, pending: 2.5, overdue: 0.5 },
@@ -54,12 +60,12 @@ const feeCollectionData = [
   { month: "Apr", collected: 14.5, pending: 2.0, overdue: 0.9 },
   { month: "May", collected: 15.2, pending: 1.8, overdue: 0.7 },
   { month: "Jun", collected: 15.8, pending: 1.5, overdue: 0.6 },
-]
+];
 
 const genderData = [
   { name: "Male", value: 110, color: "#3b82f6" },
   { name: "Female", value: 85, color: "#ec4899" },
-]
+];
 
 const salaryData = [
   { month: "Jan", amount: 45000 },
@@ -68,14 +74,14 @@ const salaryData = [
   { month: "Apr", amount: 45000 },
   { month: "May", amount: 50000 },
   { month: "Jun", amount: 45000 },
-]
+];
 
 const attendanceData = [
   { class: "9A", present: 42, absent: 3, percentage: 93 },
   { class: "9B", present: 38, absent: 5, percentage: 88 },
   { class: "10A", present: 45, absent: 2, percentage: 96 },
   { class: "10B", present: 40, absent: 4, percentage: 91 },
-]
+];
 
 const topStudents = [
   { name: "Aarav Sharma", class: "10A", score: 95, rank: 1 },
@@ -83,25 +89,58 @@ const topStudents = [
   { name: "Rohan Singh", class: "10B", score: 91, rank: 3 },
   { name: "Ananya Gupta", class: "9B", score: 89, rank: 4 },
   { name: "Vikram Kumar", class: "10A", score: 87, rank: 5 },
-]
+];
 
 const upcomingEvents = [
-  { title: "Parent-Teacher Meeting", date: "2024-01-15", type: "meeting", color: "bg-blue-500/10 border-blue-500/20" },
-  { title: "Annual Exam Starts", date: "2024-01-20", type: "exam", color: "bg-red-500/10 border-red-500/20" },
-  { title: "School Foundation Day", date: "2024-01-25", type: "event", color: "bg-green-500/10 border-green-500/20" },
+  {
+    title: "Parent-Teacher Meeting",
+    date: "2024-01-15",
+    type: "meeting",
+    color: "bg-blue-500/10 border-blue-500/20",
+  },
+  {
+    title: "Annual Exam Starts",
+    date: "2024-01-20",
+    type: "exam",
+    color: "bg-red-500/10 border-red-500/20",
+  },
+  {
+    title: "School Foundation Day",
+    date: "2024-01-25",
+    type: "event",
+    color: "bg-green-500/10 border-green-500/20",
+  },
   {
     title: "Republic Day Celebration",
     date: "2024-01-26",
     type: "holiday",
     color: "bg-purple-500/10 border-purple-500/20",
   },
-]
+];
 
 const teacherInsights = [
-  { name: "Rajesh Kumar", subject: "Mathematics", rating: 4.8, students: 120, performance: "Excellent" },
-  { name: "Priya Sharma", subject: "English", rating: 4.6, students: 110, performance: "Excellent" },
-  { name: "Amit Patel", subject: "Science", rating: 4.5, students: 115, performance: "Very Good" },
-]
+  {
+    name: "Rajesh Kumar",
+    subject: "Mathematics",
+    rating: 4.8,
+    students: 120,
+    performance: "Excellent",
+  },
+  {
+    name: "Priya Sharma",
+    subject: "English",
+    rating: 4.6,
+    students: 110,
+    performance: "Excellent",
+  },
+  {
+    name: "Amit Patel",
+    subject: "Science",
+    rating: 4.5,
+    students: 115,
+    performance: "Very Good",
+  },
+];
 
 const StatCard = ({ icon: Icon, label, value, change }: any) => (
   <Card className="bg-slate-800 border-slate-700">
@@ -109,7 +148,9 @@ const StatCard = ({ icon: Icon, label, value, change }: any) => (
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs md:text-sm text-slate-400">{label}</p>
-          <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2 truncate">{value}</p>
+          <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2 truncate">
+            {value}
+          </p>
           {change && (
             <p className="text-xs text-green-400 mt-1 md:mt-2 flex items-center gap-1">
               <TrendingUp className="w-3 h-3 flex-shrink-0" />
@@ -123,21 +164,43 @@ const StatCard = ({ icon: Icon, label, value, change }: any) => (
       </div>
     </CardContent>
   </Card>
-)
+);
 
 export default function DashboardPage() {
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-white">Dashboard</h1>
-        <p className="text-sm md:text-base text-slate-400 mt-1">Welcome to your school management system</p>
+        <p className="text-sm md:text-base text-slate-400 mt-1">
+          Welcome to your school management system
+        </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <StatCard icon={Users} label="Total Students" value="195" change="+12% this month" />
-        <StatCard icon={BookOpen} label="Total Teachers" value="28" change="+2 this month" />
-        <StatCard icon={DollarSign} label="Fees Collected" value="₹14.5L" change="+8% this month" />
-        <StatCard icon={Wallet} label="Salaries Paid" value="₹45K" change="On schedule" />
+        <StatCard
+          icon={Users}
+          label="Total Students"
+          value="195"
+          change="+12% this month"
+        />
+        <StatCard
+          icon={BookOpen}
+          label="Total Teachers"
+          value="28"
+          change="+2 this month"
+        />
+        <StatCard
+          icon={DollarSign}
+          label="Fees Collected"
+          value="₹14.5L"
+          change="+8% this month"
+        />
+        <StatCard
+          icon={Wallet}
+          label="Salaries Paid"
+          value="₹45K"
+          change="On schedule"
+        />
       </div>
 
       {/* Attendance and Performance cards */}
@@ -146,9 +209,15 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Attendance Today</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">92%</p>
-                <p className="text-xs text-green-400 mt-1 md:mt-2">165 of 180 present</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Attendance Today
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  92%
+                </p>
+                <p className="text-xs text-green-400 mt-1 md:mt-2">
+                  165 of 180 present
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
@@ -161,9 +230,15 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Class Avg. Score</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">88.5%</p>
-                <p className="text-xs text-blue-400 mt-1 md:mt-2">+2.3% from last month</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Class Avg. Score
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  88.5%
+                </p>
+                <p className="text-xs text-blue-400 mt-1 md:mt-2">
+                  +2.3% from last month
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
@@ -176,9 +251,15 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Top Performer</p>
-                <p className="text-lg md:text-xl font-bold text-white mt-1 md:mt-2 truncate">Aarav Sharma</p>
-                <p className="text-xs text-yellow-400 mt-1 md:mt-2">Score: 95%</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Top Performer
+                </p>
+                <p className="text-lg md:text-xl font-bold text-white mt-1 md:mt-2 truncate">
+                  Aarav Sharma
+                </p>
+                <p className="text-xs text-yellow-400 mt-1 md:mt-2">
+                  Score: 95%
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-yellow-500/20 to-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Award className="w-5 h-5 md:w-6 md:h-6 text-yellow-400" />
@@ -191,9 +272,15 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Upcoming Events</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">4</p>
-                <p className="text-xs text-purple-400 mt-1 md:mt-2">This month</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Upcoming Events
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  4
+                </p>
+                <p className="text-xs text-purple-400 mt-1 md:mt-2">
+                  This month
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Calendar className="w-5 h-5 md:w-6 md:h-6 text-purple-400" />
@@ -209,9 +296,15 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Male Students</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">110</p>
-                <p className="text-xs text-blue-400 mt-1 md:mt-2">56.4% of total</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Male Students
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  110
+                </p>
+                <p className="text-xs text-blue-400 mt-1 md:mt-2">
+                  56.4% of total
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500/20 to-blue-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <User className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
@@ -224,9 +317,15 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Female Students</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">85</p>
-                <p className="text-xs text-pink-400 mt-1 md:mt-2">43.6% of total</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Female Students
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  85
+                </p>
+                <p className="text-xs text-pink-400 mt-1 md:mt-2">
+                  43.6% of total
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-pink-500/20 to-pink-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <User className="w-5 h-5 md:w-6 md:h-6 text-pink-400" />
@@ -239,9 +338,15 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Gender Ratio</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">1.29:1</p>
-                <p className="text-xs text-cyan-400 mt-1 md:mt-2">Male to Female</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Gender Ratio
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  1.29:1
+                </p>
+                <p className="text-xs text-cyan-400 mt-1 md:mt-2">
+                  Male to Female
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Users className="w-5 h-5 md:w-6 md:h-6 text-cyan-400" />
@@ -255,8 +360,12 @@ export default function DashboardPage() {
         {/* Student Enrollment Trend */}
         <Card className="lg:col-span-2 bg-slate-800 border-slate-700">
           <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg text-white">Student Enrollment Trend</CardTitle>
-            <CardDescription className="text-xs md:text-sm text-slate-400">Last 6 months</CardDescription>
+            <CardTitle className="text-base md:text-lg text-white">
+              Student Enrollment Trend
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm text-slate-400">
+              Last 6 months
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
             <ResponsiveContainer width="100%" height={250}>
@@ -273,7 +382,13 @@ export default function DashboardPage() {
                   labelStyle={{ color: "#e2e8f0" }}
                 />
                 <Legend />
-                <Line type="monotone" dataKey="students" stroke="#06b6d4" strokeWidth={2} dot={{ fill: "#06b6d4" }} />
+                <Line
+                  type="monotone"
+                  dataKey="students"
+                  stroke="#06b6d4"
+                  strokeWidth={2}
+                  dot={{ fill: "#06b6d4" }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -282,8 +397,12 @@ export default function DashboardPage() {
         {/* Gender Ratio Pie Chart */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg text-white">Gender Distribution</CardTitle>
-            <CardDescription className="text-xs md:text-sm text-slate-400">Student breakdown</CardDescription>
+            <CardTitle className="text-base md:text-lg text-white">
+              Gender Distribution
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm text-slate-400">
+              Student breakdown
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
             <ResponsiveContainer width="100%" height={250}>
@@ -313,9 +432,15 @@ export default function DashboardPage() {
             </ResponsiveContainer>
             <div className="mt-3 md:mt-4 space-y-2">
               {genderData.map((item) => (
-                <div key={item.name} className="flex items-center justify-between text-xs md:text-sm">
+                <div
+                  key={item.name}
+                  className="flex items-center justify-between text-xs md:text-sm"
+                >
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 md:w-3 md:h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                    <div
+                      className="w-2 h-2 md:w-3 md:h-3 rounded-full"
+                      style={{ backgroundColor: item.color }}
+                    />
                     <span className="text-slate-300">{item.name}</span>
                   </div>
                   <span className="text-white font-medium">{item.value}</span>
@@ -331,9 +456,15 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Fees Collected</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">₹15.8L</p>
-                <p className="text-xs text-green-400 mt-1 md:mt-2">+5% this month</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Fees Collected
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  ₹15.8L
+                </p>
+                <p className="text-xs text-green-400 mt-1 md:mt-2">
+                  +5% this month
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
@@ -346,9 +477,15 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Pending Fees</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">₹1.5L</p>
-                <p className="text-xs text-yellow-400 mt-1 md:mt-2">20 students</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Pending Fees
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  ₹1.5L
+                </p>
+                <p className="text-xs text-yellow-400 mt-1 md:mt-2">
+                  20 students
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-yellow-500/20 to-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Clock className="w-5 h-5 md:w-6 md:h-6 text-yellow-400" />
@@ -361,8 +498,12 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Overdue Fees</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">₹0.6L</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Overdue Fees
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  ₹0.6L
+                </p>
                 <p className="text-xs text-red-400 mt-1 md:mt-2">5 students</p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-red-500/20 to-rose-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -376,7 +517,9 @@ export default function DashboardPage() {
       {/* Fee Collection Trend Chart */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg text-white">Fee Collection Trend</CardTitle>
+          <CardTitle className="text-base md:text-lg text-white">
+            Fee Collection Trend
+          </CardTitle>
           <CardDescription className="text-xs md:text-sm text-slate-400">
             Collected, Pending & Overdue (in Lakhs)
           </CardDescription>
@@ -396,9 +539,24 @@ export default function DashboardPage() {
                 labelStyle={{ color: "#e2e8f0" }}
               />
               <Legend />
-              <Bar dataKey="collected" fill="#10b981" radius={[8, 8, 0, 0]} name="Collected" />
-              <Bar dataKey="pending" fill="#f59e0b" radius={[8, 8, 0, 0]} name="Pending" />
-              <Bar dataKey="overdue" fill="#ef4444" radius={[8, 8, 0, 0]} name="Overdue" />
+              <Bar
+                dataKey="collected"
+                fill="#10b981"
+                radius={[8, 8, 0, 0]}
+                name="Collected"
+              />
+              <Bar
+                dataKey="pending"
+                fill="#f59e0b"
+                radius={[8, 8, 0, 0]}
+                name="Pending"
+              />
+              <Bar
+                dataKey="overdue"
+                fill="#ef4444"
+                radius={[8, 8, 0, 0]}
+                name="Overdue"
+              />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -407,8 +565,12 @@ export default function DashboardPage() {
       {/* Fee Status Pie Chart */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg text-white">Fee Status Distribution</CardTitle>
-          <CardDescription className="text-xs md:text-sm text-slate-400">Overall fee collection status</CardDescription>
+          <CardTitle className="text-base md:text-lg text-white">
+            Fee Status Distribution
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm text-slate-400">
+            Overall fee collection status
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -439,18 +601,31 @@ export default function DashboardPage() {
             </ResponsiveContainer>
             <div className="flex flex-col justify-center space-y-3 md:space-y-4">
               {feeStatusData.map((item) => (
-                <div key={item.name} className="p-3 md:p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                <div
+                  key={item.name}
+                  className="p-3 md:p-4 bg-slate-700/50 rounded-lg border border-slate-600"
+                >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 md:w-4 md:h-4 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-sm md:text-base text-slate-300 font-medium">{item.name}</span>
+                      <div
+                        className="w-3 h-3 md:w-4 md:h-4 rounded-full"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-sm md:text-base text-slate-300 font-medium">
+                        {item.name}
+                      </span>
                     </div>
-                    <span className="text-sm md:text-base text-white font-bold">{item.value}%</span>
+                    <span className="text-sm md:text-base text-white font-bold">
+                      {item.value}%
+                    </span>
                   </div>
                   <div className="w-full bg-slate-600 rounded-full h-2">
                     <div
                       className="h-2 rounded-full"
-                      style={{ width: `${item.value}%`, backgroundColor: item.color }}
+                      style={{
+                        width: `${item.value}%`,
+                        backgroundColor: item.color,
+                      }}
                     />
                   </div>
                 </div>
@@ -463,8 +638,12 @@ export default function DashboardPage() {
       {/* Salary Expenses */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg text-white">Monthly Salary Expenses</CardTitle>
-          <CardDescription className="text-xs md:text-sm text-slate-400">Last 6 months</CardDescription>
+          <CardTitle className="text-base md:text-lg text-white">
+            Monthly Salary Expenses
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm text-slate-400">
+            Last 6 months
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
           <ResponsiveContainer width="100%" height={250}>
@@ -491,16 +670,25 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <Card className="lg:col-span-2 bg-slate-800 border-slate-700">
           <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg text-white">Upcoming Events</CardTitle>
-            <CardDescription className="text-xs md:text-sm text-slate-400">This month's schedule</CardDescription>
+            <CardTitle className="text-base md:text-lg text-white">
+              Upcoming Events
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm text-slate-400">
+              This month's schedule
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
             <div className="space-y-2 md:space-y-3">
               {upcomingEvents.map((event, index) => (
-                <div key={index} className={`p-3 md:p-4 rounded-lg border ${event.color}`}>
+                <div
+                  key={index}
+                  className={`p-3 md:p-4 rounded-lg border ${event.color}`}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm md:text-base font-medium text-white">{event.title}</p>
+                      <p className="text-sm md:text-base font-medium text-white">
+                        {event.title}
+                      </p>
                       <p className="text-xs md:text-sm text-slate-400 mt-1">
                         {new Date(event.date).toLocaleDateString("en-US", {
                           month: "short",
@@ -524,8 +712,12 @@ export default function DashboardPage() {
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="pt-4 md:pt-6">
               <div className="text-center">
-                <p className="text-xs md:text-sm text-slate-400">Classes Today</p>
-                <p className="text-2xl md:text-3xl font-bold text-white mt-2">8</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Classes Today
+                </p>
+                <p className="text-2xl md:text-3xl font-bold text-white mt-2">
+                  8
+                </p>
                 <p className="text-xs text-slate-400 mt-2">All on schedule</p>
               </div>
             </CardContent>
@@ -533,9 +725,15 @@ export default function DashboardPage() {
           <Card className="bg-slate-800 border-slate-700">
             <CardContent className="pt-4 md:pt-6">
               <div className="text-center">
-                <p className="text-xs md:text-sm text-slate-400">Pending Tasks</p>
-                <p className="text-2xl md:text-3xl font-bold text-white mt-2">3</p>
-                <p className="text-xs text-yellow-400 mt-2">Requires attention</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Pending Tasks
+                </p>
+                <p className="text-2xl md:text-3xl font-bold text-white mt-2">
+                  3
+                </p>
+                <p className="text-xs text-yellow-400 mt-2">
+                  Requires attention
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -545,30 +743,49 @@ export default function DashboardPage() {
       {/* Student Performance Snapshot */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg text-white">Top Performing Students</CardTitle>
-          <CardDescription className="text-xs md:text-sm text-slate-400">This month's achievers</CardDescription>
+          <CardTitle className="text-base md:text-lg text-white">
+            Top Performing Students
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm text-slate-400">
+            This month's achievers
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
           <div className="overflow-x-auto">
             <table className="w-full text-xs md:text-sm">
               <thead>
                 <tr className="border-b border-slate-700">
-                  <th className="text-left py-2 md:py-3 px-2 md:px-4 text-slate-400 font-medium">Rank</th>
-                  <th className="text-left py-2 md:py-3 px-2 md:px-4 text-slate-400 font-medium">Name</th>
-                  <th className="text-left py-2 md:py-3 px-2 md:px-4 text-slate-400 font-medium">Class</th>
-                  <th className="text-right py-2 md:py-3 px-2 md:px-4 text-slate-400 font-medium">Score</th>
+                  <th className="text-left py-2 md:py-3 px-2 md:px-4 text-slate-400 font-medium">
+                    Rank
+                  </th>
+                  <th className="text-left py-2 md:py-3 px-2 md:px-4 text-slate-400 font-medium">
+                    Name
+                  </th>
+                  <th className="text-left py-2 md:py-3 px-2 md:px-4 text-slate-400 font-medium">
+                    Class
+                  </th>
+                  <th className="text-right py-2 md:py-3 px-2 md:px-4 text-slate-400 font-medium">
+                    Score
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {topStudents.map((student) => (
-                  <tr key={student.rank} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition">
+                  <tr
+                    key={student.rank}
+                    className="border-b border-slate-700/50 hover:bg-slate-700/30 transition"
+                  >
                     <td className="py-2 md:py-3 px-2 md:px-4">
                       <span className="inline-flex items-center justify-center w-6 h-6 md:w-7 md:h-7 rounded-full bg-gradient-to-br from-yellow-500 to-amber-500 text-white text-xs md:text-sm font-bold">
                         {student.rank}
                       </span>
                     </td>
-                    <td className="py-2 md:py-3 px-2 md:px-4 text-white font-medium">{student.name}</td>
-                    <td className="py-2 md:py-3 px-2 md:px-4 text-slate-300">{student.class}</td>
+                    <td className="py-2 md:py-3 px-2 md:px-4 text-white font-medium">
+                      {student.name}
+                    </td>
+                    <td className="py-2 md:py-3 px-2 md:px-4 text-slate-300">
+                      {student.class}
+                    </td>
                     <td className="py-2 md:py-3 px-2 md:px-4 text-right">
                       <span className="inline-flex items-center gap-1 px-2 md:px-3 py-1 rounded-full bg-green-500/20 text-green-300 text-xs md:text-sm font-semibold">
                         {student.score}%
@@ -585,16 +802,25 @@ export default function DashboardPage() {
       {/* Teacher Insights */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg text-white">Teacher Performance Insights</CardTitle>
-          <CardDescription className="text-xs md:text-sm text-slate-400">Top performing teachers</CardDescription>
+          <CardTitle className="text-base md:text-lg text-white">
+            Teacher Performance Insights
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm text-slate-400">
+            Top performing teachers
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
           <div className="space-y-3 md:space-y-4">
             {teacherInsights.map((teacher, index) => (
-              <div key={index} className="p-3 md:p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+              <div
+                key={index}
+                className="p-3 md:p-4 bg-slate-700/50 rounded-lg border border-slate-600"
+              >
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div>
-                    <p className="text-sm md:text-base font-medium text-white">{teacher.name}</p>
+                    <p className="text-sm md:text-base font-medium text-white">
+                      {teacher.name}
+                    </p>
                     <p className="text-xs text-slate-400">{teacher.subject}</p>
                   </div>
                   <div className="flex items-center gap-1 px-2 md:px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 text-xs md:text-sm font-semibold flex-shrink-0">
@@ -603,8 +829,12 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-xs md:text-sm">
-                  <span className="text-slate-400">Students: {teacher.students}</span>
-                  <span className="text-green-400 font-medium">{teacher.performance}</span>
+                  <span className="text-slate-400">
+                    Students: {teacher.students}
+                  </span>
+                  <span className="text-green-400 font-medium">
+                    {teacher.performance}
+                  </span>
                 </div>
               </div>
             ))}
@@ -615,16 +845,25 @@ export default function DashboardPage() {
       {/* Real-time Attendance Tracker */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg text-white">Class-wise Attendance</CardTitle>
-          <CardDescription className="text-xs md:text-sm text-slate-400">Today's attendance status</CardDescription>
+          <CardTitle className="text-base md:text-lg text-white">
+            Class-wise Attendance
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm text-slate-400">
+            Today's attendance status
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
           <div className="space-y-3 md:space-y-4">
             {attendanceData.map((classData, index) => (
-              <div key={index} className="p-3 md:p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+              <div
+                key={index}
+                className="p-3 md:p-4 bg-slate-700/50 rounded-lg border border-slate-600"
+              >
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <p className="text-sm md:text-base font-medium text-white">{classData.class}</p>
+                    <p className="text-sm md:text-base font-medium text-white">
+                      {classData.class}
+                    </p>
                     <p className="text-xs text-slate-400">
                       {classData.present} present, {classData.absent} absent
                     </p>
@@ -634,8 +873,8 @@ export default function DashboardPage() {
                       classData.percentage >= 90
                         ? "bg-green-500/20 text-green-300"
                         : classData.percentage >= 75
-                          ? "bg-yellow-500/20 text-yellow-300"
-                          : "bg-red-500/20 text-red-300"
+                        ? "bg-yellow-500/20 text-yellow-300"
+                        : "bg-red-500/20 text-red-300"
                     }`}
                   >
                     {classData.percentage}%
@@ -647,8 +886,8 @@ export default function DashboardPage() {
                       classData.percentage >= 90
                         ? "bg-green-500"
                         : classData.percentage >= 75
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
                     }`}
                     style={{ width: `${classData.percentage}%` }}
                   />
@@ -662,28 +901,40 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg text-white">Recent Alerts</CardTitle>
-          <CardDescription className="text-xs md:text-sm text-slate-400">Important notifications</CardDescription>
+          <CardTitle className="text-base md:text-lg text-white">
+            Recent Alerts
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm text-slate-400">
+            Important notifications
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
           <div className="space-y-2 md:space-y-3">
             <div className="flex items-start gap-3 p-2 md:p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
               <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs md:text-sm font-medium text-yellow-200">Pending Fee Payments</p>
-                <p className="text-xs text-yellow-300/70">15 students have pending fee payments</p>
+                <p className="text-xs md:text-sm font-medium text-yellow-200">
+                  Pending Fee Payments
+                </p>
+                <p className="text-xs text-yellow-300/70">
+                  15 students have pending fee payments
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-2 md:p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
               <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-blue-500 mt-0.5 flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs md:text-sm font-medium text-blue-200">New Enrollment</p>
-                <p className="text-xs text-blue-300/70">5 new students enrolled this week</p>
+                <p className="text-xs md:text-sm font-medium text-blue-200">
+                  New Enrollment
+                </p>
+                <p className="text-xs text-blue-300/70">
+                  5 new students enrolled this week
+                </p>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

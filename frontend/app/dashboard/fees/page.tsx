@@ -32,7 +32,8 @@ export default function FeesPage() {
     dateFrom: "",
     dateTo: "",
   });
-    const [currentPage, setCurrentPage] = useState(0); // zero-based page
+
+  const [currentPage, setCurrentPage] = useState(0); // zero-based page
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState("id");
@@ -40,44 +41,54 @@ export default function FeesPage() {
 
   const BASE_URL = "http://localhost:8080/api/students/fee";
 
-  // 🟢 FETCH ALL FEES
-  const fetchFees = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(BASE_URL + "/");
-      const formatted = res.data.map((f: any) => ({
-        id: f.id,
-        studentId: f.studentId,
-        studentName: `${f.student.firstName} ${f.student.lastName}`,
-        class: f.student.className,
-        academicYear: f.academicYear,
-        totalAmount: f.totalAmount,
-        amountPaid: f.amountPaid,
-        dueAmount: f.dueAmount,
-        paymentMode: f.paymentMode,
-        paymentDate: f.paymentDate,
-        receiptNumber: f.receiptNumber,
-        remarks: f.remarks,
-        status: f.status,
-        lastUpdated: f.paymentDate,
-      }));
-      setFees(formatted);
-    } catch (error) {
-      console.error("Error fetching fees:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+
+  // 🟢 FETCH ALL FEES (with pagination + sorting)
+const fetchFees = async () => {
+  try {
+    setLoading(true);
+    const res = await axios.get(BASE_URL+"/", {
+      params: {
+        pageNumber: currentPage,
+        pageSize,
+        sortBy,
+        sortDir,
+        className: filters.class,
+        paymentStatus: filters.paymentStatus,
+        paymentMode: filters.paymentMode,
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+        search: searchTerm,
+      },
+    });
+
+    const data = res.data;
+
+    // Map fees to include studentName and class
+    const mappedFees = data.content.map((f: any) => ({
+      ...f,
+      studentName: f.student ? `${f.student.firstName} ${f.student.lastName}` : "",
+      class: f.student ? f.student.className : "",
+    }));
+
+    setFees(mappedFees);
+    setTotalPages(data.totalPages);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     fetchFees();
-  }, []);
+  }, [currentPage, pageSize, sortBy, sortDir]);
 
   // 🟡 ADD OR UPDATE FEE
   const handleAddFee = async (newFee: any) => {
     try {
       if (editingFee) {
-        // Only send fields your backend expects
         const payload = {
           academicYear: newFee.academicYear,
           totalAmount: newFee.totalAmount,
@@ -89,7 +100,7 @@ export default function FeesPage() {
         await axios.put(`${BASE_URL}/${editingFee.id}`, payload);
       } else {
         const payload = {
-          studentId: newFee.studentId, // only for new record
+          studentId: newFee.studentId,
           academicYear: newFee.academicYear,
           totalAmount: newFee.totalAmount,
           amountPaid: newFee.amountPaid,
@@ -97,8 +108,9 @@ export default function FeesPage() {
           paymentMode: newFee.paymentMode,
           remarks: newFee.remarks,
         };
-        await axios.post(BASE_URL + "/", payload);
+        await axios.post(`${BASE_URL}/`, payload);
       }
+
       fetchFees();
       setShowForm(false);
       setEditingFee(null);
@@ -122,9 +134,9 @@ export default function FeesPage() {
   // 🟠 EDIT MODE
   const handleEditFee = async (fee: any) => {
     try {
-      // Fetch latest fee data from backend
       const res = await axios.get(`${BASE_URL}/fId/${fee.id}`);
       const f = res.data;
+
       const formatted = {
         id: f.id,
         studentId: f.studentId,
@@ -140,6 +152,7 @@ export default function FeesPage() {
         remarks: f.remarks,
         status: f.status,
       };
+
       setEditingFee(formatted);
       setShowForm(true);
     } catch (error) {
@@ -152,6 +165,7 @@ export default function FeesPage() {
     try {
       const feeToUpdate = fees.find((f) => f.id === id);
       if (!feeToUpdate) return;
+
       const updatedFee = {
         academicYear: feeToUpdate.academicYear,
         totalAmount: feeToUpdate.totalAmount,
@@ -160,6 +174,7 @@ export default function FeesPage() {
         paymentMode: feeToUpdate.paymentMode,
         remarks: feeToUpdate.remarks,
       };
+
       await axios.put(`${BASE_URL}/${id}`, updatedFee);
       fetchFees();
     } catch (error) {
@@ -202,35 +217,47 @@ export default function FeesPage() {
     a.click();
   };
 
-  // 🧩 Apply Filters and Search
-  const filteredFees = fees.filter((fee) => {
-    const matchesSearch =
-      fee.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(fee.studentId).includes(searchTerm) ||
-      fee.receiptNumber.includes(searchTerm);
+  // 🧩 FILTER & SEARCH
+const filteredFees = fees.filter((fee) => {
+  // Safe values (prevent undefined errors)
+  const studentName = fee.studentName || "";
+  const studentId = fee.studentId || "";
+  const receiptNumber = fee.receiptNumber || "";
+  const className = fee.className || fee.class || "";
+  const paymentStatus = fee.paymentStatus || fee.status || "";
+  const paymentMode = fee.paymentMode || "";
+  const paymentDate = fee.paymentDate || fee.lastUpdated || null;
 
-    const matchesClass = !filters.class || fee.class === filters.class;
-    const matchesStatus =
-      !filters.paymentStatus || fee.status === filters.paymentStatus;
-    const matchesMode =
-      !filters.paymentMode || fee.paymentMode === filters.paymentMode;
-    const matchesDateFrom =
-      !filters.dateFrom ||
-      new Date(fee.paymentDate || fee.lastUpdated) >=
-        new Date(filters.dateFrom);
-    const matchesDateTo =
-      !filters.dateTo ||
-      new Date(fee.paymentDate || fee.lastUpdated) <= new Date(filters.dateTo);
+  // Search matching
+  const matchesSearch =
+    studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(studentId).includes(searchTerm) ||
+    receiptNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return (
-      matchesSearch &&
-      matchesClass &&
-      matchesStatus &&
-      matchesMode &&
-      matchesDateFrom &&
-      matchesDateTo
-    );
-  });
+  // Filter matching
+  const matchesClass = !filters.class || className === filters.class;
+  const matchesStatus =
+    !filters.paymentStatus || paymentStatus === filters.paymentStatus;
+  const matchesMode =
+    !filters.paymentMode || paymentMode === filters.paymentMode;
+
+  const matchesDateFrom =
+    !filters.dateFrom ||
+    (paymentDate && new Date(paymentDate) >= new Date(filters.dateFrom));
+
+  const matchesDateTo =
+    !filters.dateTo ||
+    (paymentDate && new Date(paymentDate) <= new Date(filters.dateTo));
+
+  return (
+    matchesSearch &&
+    matchesClass &&
+    matchesStatus &&
+    matchesMode &&
+    matchesDateFrom &&
+    matchesDateTo
+  );
+});
 
   return (
     <div className="p-3 md:p-6 space-y-6">
@@ -238,12 +265,13 @@ export default function FeesPage() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">
-            Fees Management
+            Fees
           </h1>
           <p className="text-slate-400 mt-1 text-sm md:text-base">
             Track and manage student fee payments
           </p>
         </div>
+
         <div className="flex gap-2 w-full md:w-auto">
           <Button
             onClick={() => {
@@ -252,22 +280,22 @@ export default function FeesPage() {
             }}
             className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white gap-2 flex-1 md:flex-none"
           >
-            <Plus className="w-4 h-4" />
-            Add Fee
+            <Plus className="w-4 h-4" /> Add Fee
           </Button>
+
           <Button
             onClick={handleExport}
             variant="outline"
             className="border-slate-600 text-slate-300 bg-transparent gap-2"
           >
-            <Download className="w-4 h-4" />
-            Export
+            <Download className="w-4 h-4" /> Export
           </Button>
         </div>
       </div>
 
       <FeeAnalytics fees={filteredFees} />
 
+      {/* FORM */}
       {showForm && (
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
@@ -295,6 +323,7 @@ export default function FeesPage() {
 
       <FeeFilters onFilterChange={setFilters} />
 
+      {/* TABLE */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
           <CardTitle className="text-white">Fee Records</CardTitle>
@@ -302,6 +331,7 @@ export default function FeesPage() {
             {loading ? "Loading..." : `Total: ${filteredFees.length} records`}
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           <div className="mb-4 relative">
             <Search className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
@@ -312,6 +342,7 @@ export default function FeesPage() {
               className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
             />
           </div>
+         
           <FeeTable
             fees={filteredFees}
             onDelete={handleDeleteFee}
@@ -320,40 +351,41 @@ export default function FeesPage() {
             onViewReceipt={setSelectedReceipt}
           />
 
-            <div className="flex items-center justify-center gap-2 mt-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-          disabled={currentPage === 0}
-        >
-          Previous
-        </Button>
-
-        <div className="flex gap-1">
-          {Array.from({ length: totalPages }, (_, i) => i).map((page) => (
+          {/* PAGINATION */}
+          <div className="flex items-center justify-center gap-2 mt-4">
             <Button
-              key={page}
+              variant="outline"
               size="sm"
-              variant={currentPage === page ? "default" : "outline"}
-              onClick={() => setCurrentPage(page)}
+              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+              disabled={currentPage === 0}
             >
-              {page + 1}
+              Previous
             </Button>
-          ))}
-        </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            setCurrentPage(Math.min(totalPages - 1, currentPage + 1))
-          }
-          disabled={currentPage === totalPages - 1}
-        >
-          Next
-        </Button>
-      </div>
+            <div className="flex gap-1">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <Button
+                  key={i}
+                  size="sm"
+                  variant={currentPage === i ? "default" : "outline"}
+                  onClick={() => setCurrentPage(i)}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setCurrentPage(Math.min(totalPages - 1, currentPage + 1))
+              }
+              disabled={currentPage === totalPages - 1}
+            >
+              Next
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

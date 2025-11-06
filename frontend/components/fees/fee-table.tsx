@@ -55,7 +55,7 @@ export default function FeeTable({
         return "bg-slate-500/10 text-slate-400 border-slate-500/20";
     }
   };
-
+   console.log("fees in table:", fees);
   if (fees.length === 0) {
     return (
       <div className="text-center text-slate-400 py-8">

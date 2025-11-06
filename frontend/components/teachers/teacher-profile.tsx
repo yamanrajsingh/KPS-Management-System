@@ -4,11 +4,19 @@ import { X, Mail, Phone, MapPin, Calendar, BookOpen, Award } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
-export default function TeacherProfile({ teacher, onClose }: any) {
-  const calculateExperience = (joinDate: string) => {
+export default function TeacherProfile({ teacher, onClose }: { teacher: any; onClose: () => void }) {
+  if (!teacher) return null
+
+  const calculateExperience = (joinDate?: string) => {
+    if (!joinDate) return 0
     const years = new Date().getFullYear() - new Date(joinDate).getFullYear()
     return years
   }
+
+  // Use name initial if firstName isn't provided
+  const initial = (teacher.name && typeof teacher.name === "string" && teacher.name.length > 0)
+    ? teacher.name[0].toUpperCase()
+    : (teacher.firstName && typeof teacher.firstName === "string" ? teacher.firstName[0].toUpperCase() : "?")
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -23,7 +31,7 @@ export default function TeacherProfile({ teacher, onClose }: any) {
         <CardContent className="pt-6 space-y-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">{teacher.firstName[0]}</span>
+              <span className="text-2xl font-bold text-white">{initial}</span>
             </div>
             <div>
               <h3 className="text-xl font-bold text-white">{teacher.name}</h3>
@@ -39,28 +47,28 @@ export default function TeacherProfile({ teacher, onClose }: any) {
                   <Mail className="w-5 h-5 text-blue-400" />
                   <div>
                     <p className="text-xs text-slate-400">Email</p>
-                    <p className="text-white">{teacher.email}</p>
+                    <p className="text-white">{teacher.email ?? "-"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="w-5 h-5 text-blue-400" />
                   <div>
                     <p className="text-xs text-slate-400">Phone</p>
-                    <p className="text-white">{teacher.phone}</p>
+                    <p className="text-white">{teacher.phone ?? "-"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Calendar className="w-5 h-5 text-blue-400" />
                   <div>
                     <p className="text-xs text-slate-400">Date of Birth</p>
-                    <p className="text-white">{teacher.dob}</p>
+                    <p className="text-white">{teacher.dob ?? "-"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <MapPin className="w-5 h-5 text-blue-400" />
                   <div>
                     <p className="text-xs text-slate-400">Address</p>
-                    <p className="text-white">{teacher.address}</p>
+                    <p className="text-white">{teacher.address ?? "-"}</p>
                   </div>
                 </div>
               </div>
@@ -73,28 +81,28 @@ export default function TeacherProfile({ teacher, onClose }: any) {
                   <BookOpen className="w-5 h-5 text-cyan-400" />
                   <div>
                     <p className="text-xs text-slate-400">Subject</p>
-                    <p className="text-white">{teacher.subject}</p>
+                    <p className="text-white">{teacher.subject ?? "-"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Award className="w-5 h-5 text-cyan-400" />
                   <div>
                     <p className="text-xs text-slate-400">Qualification</p>
-                    <p className="text-white">{teacher.qualification}</p>
+                    <p className="text-white">{teacher.qualification ?? "-"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Calendar className="w-5 h-5 text-cyan-400" />
                   <div>
                     <p className="text-xs text-slate-400">Join Date</p>
-                    <p className="text-white">{teacher.joinDate}</p>
+                    <p className="text-white">{teacher.joiningDate ?? teacher.joinDate ?? "-"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Calendar className="w-5 h-5 text-cyan-400" />
                   <div>
                     <p className="text-xs text-slate-400">Experience</p>
-                    <p className="text-white">{calculateExperience(teacher.joinDate)} years</p>
+                    <p className="text-white">{calculateExperience(teacher.joiningDate ?? teacher.joinDate)} years</p>
                   </div>
                 </div>
               </div>
@@ -103,16 +111,16 @@ export default function TeacherProfile({ teacher, onClose }: any) {
 
           <div className="bg-slate-700/50 rounded-lg p-4">
             <p className="text-xs text-slate-400">
-              Assigned Class: <span className="text-white font-semibold">{teacher.assignedClass}</span>
+              Assigned Class: <span className="text-white font-semibold">{teacher.assignedClass ?? "-"}</span>
             </p>
             <p className="text-xs text-slate-400 mt-2">
-              Gender: <span className="text-white font-semibold">{teacher.gender}</span>
+              Gender: <span className="text-white font-semibold">{teacher.gender ?? "-"}</span>
             </p>
             <p className="text-xs text-slate-400 mt-2">
-              Status: <span className="text-green-400 font-semibold">{teacher.status}</span>
+              Status: <span className="text-green-400 font-semibold">{teacher.status ?? "-"}</span>
             </p>
             <p className="text-xs text-slate-400 mt-2">
-              Last Updated: <span className="text-white font-semibold">{teacher.lastUpdated}</span>
+              Last Updated: <span className="text-white font-semibold">{teacher.lastUpdated ?? "-"}</span>
             </p>
           </div>
         </CardContent>
