@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   BarChart,
   Bar,
@@ -46,31 +47,45 @@ interface PaymentMode {
 }
 
 export default function FeeAnalytics() {
+    const router = useRouter()
   const [summary, setSummary] = useState<FeeSummary | null>(null)
   const [monthlyData, setMonthlyData] = useState<MonthlyFee[]>([])
   const [classWiseData, setClassWiseData] = useState<ClassWiseFee[]>([])
   const [paymentModeData, setPaymentModeData] = useState<PaymentMode[]>([])
 
   useEffect(() => {
+     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+    if (!token) {
+      console.error("No auth token found. Please log in.")
+      router.push("/")
+      return
+    }
+
+     const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }
+     const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+
     const fetchData = async () => {
       try {
         // 1️⃣ Fee Summary
-        const summaryRes = await fetch("http://localhost:8080/api/students/fee/summary")
+        const summaryRes = await fetch(`${apiBaseUrl}/api/students/fee/summary`,{headers})
         const summaryData: FeeSummary = await summaryRes.json()
         setSummary(summaryData)
 
         // 2️⃣ Monthly Fee Trend
-        const monthlyRes = await fetch("http://localhost:8080/api/students/fee/monthly")
+        const monthlyRes = await fetch(`${apiBaseUrl}/api/students/fee/monthly`,{headers})
         const monthlyJson: MonthlyFee[] = await monthlyRes.json()
         setMonthlyData(monthlyJson)
 
         // 3️⃣ Class-wise Collection
-        const classRes = await fetch("http://localhost:8080/api/students/fee/classwise")
+        const classRes = await fetch(`${apiBaseUrl}/api/students/fee/classwise`,{headers})
         const classJson: ClassWiseFee[] = await classRes.json()
         setClassWiseData(classJson)
 
         // 4️⃣ Payment Mode Distribution
-        const paymentRes = await fetch("http://localhost:8080/api/students/fee/payment-modes")
+        const paymentRes = await fetch(`${apiBaseUrl}/api/students/fee/payment-modes`,{headers})
         const paymentJson: PaymentMode[] = await paymentRes.json()
 
         // Add default colors if not provided

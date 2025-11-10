@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
 import {
   Card,
   CardContent,
@@ -18,6 +20,7 @@ import StudentStats from "@/components/students/student-stats";
 import { api } from "@/lib/api";
 
 export default function StudentsPage() {
+  const router = useRouter();
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -36,6 +39,7 @@ export default function StudentsPage() {
 
   const fetchStudents = async () => {
     setLoading(true);
+    const headers = getAuthHeaders();
     try {
       const res = await api.get("/", {
         params: {
@@ -48,16 +52,39 @@ export default function StudentsPage() {
           gender: filterGender,
           location: filterLocation,
         },
+        headers,
       });
       setStudents(res.data.content);
       setTotalPages(res.data.totalPages);
     } catch (err: any) {
-      setError(err.message || "Failed to fetch students");
+      console.error("Error fetching fees:", err);
+      // optional: if 401, redirect to login
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        localStorage.removeItem("authToken");
+        router.push("/");
+      }
     }
     setLoading(false);
   };
 
+  const getAuthHeaders = () => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    return token
+      ? {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }
+      : { "Content-Type": "application/json" };
+  };
+
   useEffect(() => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      console.error("No auth token found. Please log in.");
+      router.push("/");
+    }
     fetchStudents();
   }, [
     currentPage,
@@ -73,9 +100,11 @@ export default function StudentsPage() {
   const handleAddStudent = async (studentData: any) => {
     try {
       if (editingStudent) {
-        await api.put(`/${editingStudent.id}`, studentData);
+        await api.put(`/${editingStudent.id}`, studentData, {
+          headers: getAuthHeaders(),
+        });
       } else {
-        await api.post("/create", studentData);
+        await api.post("/create", studentData, { headers: getAuthHeaders() });
       }
       fetchStudents();
       setShowForm(false);
@@ -90,7 +119,7 @@ export default function StudentsPage() {
     if (!window.confirm("Are you sure you want to delete this student?"))
       return;
     try {
-      await api.delete(`/${id}`);
+      await api.delete(`/${id}`, { headers: getAuthHeaders() });
       fetchStudents();
     } catch (err: any) {
       console.error(err);
@@ -100,7 +129,7 @@ export default function StudentsPage() {
 
   const handleViewStudent = async (id: string) => {
     try {
-      const res = await api.get(`/${id}`);
+      const res = await api.get(`/${id}`, { headers: getAuthHeaders() });
       setSelectedStudent(res.data);
     } catch (err: any) {
       console.error(err);

@@ -4,6 +4,7 @@ import type React from "react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 
 interface FeeFormProps {
   onSubmit: (data: any) => void;
@@ -16,6 +17,8 @@ export default function FeeForm({
   onCancel,
   initialData,
 }: FeeFormProps) {
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     studentId: "",
     academicYear: "2024-2025",
@@ -26,37 +29,69 @@ export default function FeeForm({
     remarks: "",
   });
 
-  const [errors, setErrors] = useState<any>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isClient, setIsClient] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    // Only run in browser
+    if (typeof window === "undefined") return;
+
+    const t = localStorage.getItem("authToken");
+    if (!t) {
+      console.error("No auth token found. Please log in.");
+      // redirect to login/home
+      router.push("/");
+      return;
+    }
+    setToken(t);
+
     if (initialData) {
       setFormData({
-        studentId: initialData.studentId,
-        academicYear: initialData.academicYear,
-        totalAmount: initialData.totalAmount.toString(),
-        amountPaid: initialData.amountPaid.toString(),
-        paymentMode: initialData.paymentMode,
-        paymentDate: initialData.paymentDate || "",
-        remarks: initialData.remarks,
+        studentId: initialData.studentId ?? "",
+        academicYear: initialData.academicYear ?? "2024-2025",
+        totalAmount:
+          initialData.totalAmount !== undefined
+            ? String(initialData.totalAmount)
+            : "",
+        amountPaid:
+          initialData.amountPaid !== undefined ? String(initialData.amountPaid) : "",
+        paymentMode: initialData.paymentMode ?? "Cash",
+        paymentDate: initialData.paymentDate ?? "",
+        remarks: initialData.remarks ?? "",
       });
     }
+
     setIsClient(true);
-  }, [initialData]);
+    // we intentionally do not add router/initialData to deps that would re-run unnecessarily
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validateForm = () => {
-    const newErrors: any = {};
+    const newErrors: Record<string, string> = {};
 
-    // Convert to string before trim or just check for falsy value
     if (!formData.studentId || String(formData.studentId).trim() === "") {
       newErrors.studentId = "Student ID is required";
     }
 
-    if (!formData.totalAmount)
+    if (!formData.totalAmount || String(formData.totalAmount).trim() === "") {
       newErrors.totalAmount = "Total amount is required";
-    if (!formData.amountPaid) newErrors.amountPaid = "Amount paid is required";
+    } else if (Number.isNaN(Number(formData.totalAmount)) || Number(formData.totalAmount) < 0) {
+      newErrors.totalAmount = "Total amount must be a non-negative number";
+    }
 
-    if (Number(formData.amountPaid) > Number(formData.totalAmount)) {
+    if (!formData.amountPaid || String(formData.amountPaid).trim() === "") {
+      newErrors.amountPaid = "Amount paid is required";
+    } else if (Number.isNaN(Number(formData.amountPaid)) || Number(formData.amountPaid) < 0) {
+      newErrors.amountPaid = "Amount paid must be a non-negative number";
+    }
+
+    if (
+      !newErrors.amountPaid &&
+      !newErrors.totalAmount &&
+      Number(formData.amountPaid) > Number(formData.totalAmount)
+    ) {
       newErrors.amountPaid = "Amount paid cannot exceed total amount";
     }
 
@@ -72,13 +107,25 @@ export default function FeeForm({
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev: any) => ({ ...prev, [name]: "" }));
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[name];
+        return copy;
+      });
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+    if (!token) {
+      // should not happen because we check token in useEffect, but safe-guard
+      alert("No auth token found. Please login again.");
+      router.push("/");
+      return;
+    }
+
+    setIsSubmitting(true);
 
     const payload = {
       academicYear: formData.academicYear,
@@ -90,55 +137,71 @@ export default function FeeForm({
     };
 
     try {
-      let response;
+      const base = typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_BASE
+        ? process.env.NEXT_PUBLIC_API_BASE
+        : "http://localhost:8080";
+
+      let url = "";
+      let method: "POST" | "PUT" = "POST";
+
       if (initialData && initialData.id) {
-        // Update fee
-        response = await fetch(
-          `http://localhost:8080/api/students/fee/${initialData.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
+        // update
+        url = `${base}/api/students/fee/${initialData.id}`;
+        method = "PUT";
       } else {
-        // Create new fee
-        response = await fetch(
-          `http://localhost:8080/api/students/fee/create/${formData.studentId}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
+        // create
+        url = `${base}/api/students/fee/create/${encodeURIComponent(formData.studentId)}`;
+        method = "POST";
       }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API Error:", errorData);
-        alert("Something went wrong! Check console.");
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        // try parse JSON error, otherwise fallback to statusText
+        let errMsg = `Request failed: ${res.status} ${res.statusText}`;
+        try {
+          const errJson = await res.json();
+          if (errJson && errJson.message) errMsg = String(errJson.message);
+        } catch {
+          // ignore parse error
+        }
+        console.error("API Error:", errMsg);
+        alert(errMsg);
+        setIsSubmitting(false);
         return;
       }
 
-      const data = await response.json();
+      const data = await res.json();
       onSubmit(data);
       onCancel();
 
-      // Reset form
-      setFormData({
-        studentId: "",
-        academicYear: "2024-2025",
-        totalAmount: "",
-        amountPaid: "",
-        paymentMode: "Cash",
-        paymentDate: "",
-        remarks: "",
-      });
-    } catch (err) {
+      // reset form only when creating (if you edited, typically you won't reset)
+      if (!(initialData && initialData.id)) {
+        setFormData({
+          studentId: "",
+          academicYear: "2024-2025",
+          totalAmount: "",
+          amountPaid: "",
+          paymentMode: "Cash",
+          paymentDate: "",
+          remarks: "",
+        });
+      }
+    } catch (err: any) {
       console.error("Network Error:", err);
       alert("Network error! Try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
   if (!isClient) return null;
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

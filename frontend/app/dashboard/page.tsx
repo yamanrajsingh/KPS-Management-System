@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   BarChart,
   Bar,
@@ -39,8 +40,8 @@ import {
   BarChart3,
 } from "lucide-react";
 
-// --- static sample data (kept as you asked) ---
-const studentData = [
+// --- static sample data (renamed to avoid colliding with state vars) ---
+const sampleStudentData = [
   { month: "Jan", students: 120 },
   { month: "Feb", students: 135 },
   { month: "Mar", students: 150 },
@@ -154,7 +155,10 @@ const formatCurrencyINR = (n: number) => {
 };
 
 export default function DashboardPage() {
-  // replace the hard-coded stat card values with state populated from your APIs
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+  const router = useRouter();
+
+  // state (using sampleStudentData as initial)
   const [totalStudents, setTotalStudents] = useState<number>(195);
   const [maleStudents, setMaleStudents] = useState<number>(110);
   const [femaleStudents, setFemaleStudents] = useState<number>(85);
@@ -163,24 +167,66 @@ export default function DashboardPage() {
   const [pendingFees, setPendingFees] = useState<number>(150000);
   const [overdueFees, setOverdueFees] = useState<number>(60000);
   const [totalSalaryPaid, setTotalSalaryPaid] = useState<number>(45000);
- const [studentData, setStudentData] = useState<{ month: string; students: number }[]>([
-{ month: "Jan", students: 120 },
-{ month: "Feb", students: 135 },
-{ month: "Mar", students: 150 },
-{ month: "Apr", students: 165 },
-{ month: "May", students: 180 },
-{ month: "Jun", students: 195 },
-]);
+
+  const [studentData, setStudentData] =
+    useState<{ month: string; students: number }[]>(sampleStudentData);
+
+  // Build headers that include the token if present
+  const getAuthHeaders = () => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    return token
+      ? {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }
+      : { "Content-Type": "application/json" };
+  };
+
+  const handleUnauthorized = () => {
+    // remove token and redirect to login
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("authToken");
+    }
+    router.push("/");
+  };
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/students")
-      .then((res) => res.json())
-      .then((data) => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      router.push("/");
+      return;
+    }
+
+    const headers = getAuthHeaders();
+
+    // helper: handle fetch response with 401 logic
+    const check401AndParse = async (res: Response) => {
+      if (res.status === 401) {
+        handleUnauthorized();
+        throw new Error("Unauthorized");
+      }
+      if (!res.ok) {
+        const text = await res.text().catch(() => res.statusText);
+        throw new Error(`API error ${res.status}: ${text}`);
+      }
+      return res.json();
+    };
+
+    // fetches wrapped in async functions for clarity
+    (async () => {
+      // 1) students -> compute last 6 months distribution by admissionDate
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/students`, {
+          headers,
+        });
+        const data = await check401AndParse(res);
+
         const studentsArr = Array.isArray(data) ? data : data?.students ?? [];
 
         const now = new Date();
         const months: { key: string; label: string }[] = [];
-        // build last 6 months keys (including current month)
         for (let i = 5; i >= 0; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const key = `${d.getFullYear()}-${d.getMonth() + 1}`; // e.g. 2025-10
@@ -194,7 +240,7 @@ export default function DashboardPage() {
 
         studentsArr.forEach((s: any) => {
           const ad =
-            s.admissionDate ?? s.admission_date ?? s.joinDate ?? s.admittedAt; // tolerate different field names
+            s.admissionDate ?? s.admission_date ?? s.joinDate ?? s.admittedAt;
           if (!ad) return;
           const dt = new Date(ad);
           if (isNaN(dt.getTime())) return;
@@ -207,54 +253,71 @@ export default function DashboardPage() {
           students: counts.get(m.key) ?? 0,
         }));
         setStudentData(result);
-      })
-      .catch((err) => console.warn("/api/students fetch failed:", err));
+      } catch (err) {
+        console.warn("/api/students fetch failed:", err);
+      }
 
-    // fetch students stats
-    fetch("http://localhost:8080/api/students/stats")
-      .then((res) => res.json())
-      .then((data) => {
+      // 2) students/stats
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/students/stats`, {
+          headers,
+        });
+        const data = await check401AndParse(res);
+
         if (typeof data.totalStudents === "number")
           setTotalStudents(data.totalStudents);
         if (typeof data.maleStudents === "number")
           setMaleStudents(data.maleStudents);
         if (typeof data.femaleStudents === "number")
           setFemaleStudents(data.femaleStudents);
-      })
-      .catch((err) => console.warn("students/stats fetch failed:", err));
+      } catch (err) {
+        console.warn("students/stats fetch failed:", err);
+      }
 
-    // fetch teachers list to get count (length)
-    fetch("http://localhost:8080/api/teachers/")
-      .then((res) => res.json())
-      .then((data) => {
+      // 3) teachers (count)
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/teachers/`, {
+          headers,
+        });
+        const data = await check401AndParse(res);
+
         if (Array.isArray(data)) setTotalTeachers(data.length);
         else if (
           typeof data === "object" &&
           data !== null &&
-          typeof data.length === "number"
+          typeof (data as any).length === "number"
         )
-          setTotalTeachers(data.length);
-      })
-      .catch((err) => console.warn("teachers fetch failed:", err));
+          setTotalTeachers((data as any).length);
+        else if (typeof data.count === "number") setTotalTeachers(data.count); // optional format
+      } catch (err) {
+        console.warn("teachers fetch failed:", err);
+      }
 
-    // fetch fee summary
-    fetch("http://localhost:8080/api/students/fee/summary")
-      .then((res) => res.json())
-      .then((data) => {
+      // 4) fee summary
+      try {
+        const res = await fetch(
+          `${apiBaseUrl}/api/students/fee/summary`,
+          { headers }
+        );
+        const data = await check401AndParse(res);
+
         if (typeof data.totalCollected === "number")
           setFeesCollected(data.totalCollected);
         if (typeof data.totalPending === "number")
           setPendingFees(data.totalPending);
         if (typeof data.totalOverdue === "number")
           setOverdueFees(data.totalOverdue);
-      })
-      .catch((err) => console.warn("fee summary fetch failed:", err));
+      } catch (err) {
+        console.warn("fee summary fetch failed:", err);
+      }
 
-    // fetch teacher salaries and sum amounts
-    fetch("http://localhost:8080/api/teacher/salary/")
-      .then((res) => res.json())
-      .then((data) => {
-        // expecting array of salary objects with `amount` field or map of teachers
+      // 5) teacher salaries
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/teacher/salary/`, {
+          headers,
+        });
+        const data = await check401AndParse(res);
+
         if (Array.isArray(data)) {
           const sum = data.reduce(
             (acc: number, item: any) => acc + (Number(item.amount) || 0),
@@ -262,18 +325,22 @@ export default function DashboardPage() {
           );
           if (!isNaN(sum)) setTotalSalaryPaid(sum);
         } else if (typeof data === "object" && data !== null) {
-          // allow response like { salaries: [...] }
           if (Array.isArray((data as any).salaries)) {
             const sum = (data as any).salaries.reduce(
               (acc: number, item: any) => acc + (Number(item.amount) || 0),
               0
             );
             if (!isNaN(sum)) setTotalSalaryPaid(sum);
+          } else if (typeof (data as any).total === "number") {
+            setTotalSalaryPaid((data as any).total);
           }
         }
-      })
-      .catch((err) => console.warn("teacher salary fetch failed:", err));
-  }, []);
+      } catch (err) {
+        console.warn("teacher salary fetch failed:", err);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty (runs on mount). If you want to react to router/token changes, add deps.
 
   // computed values
   const genderRatio =
@@ -363,7 +430,7 @@ export default function DashboardPage() {
                   92%
                 </p>
                 <p className="text-xs text-green-400 mt-1 md:mt-2">
-                  165 of 180 present 
+                  165 of 180 present
                 </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -499,7 +566,7 @@ export default function DashboardPage() {
                   {genderRatio}
                 </p>
                 <p className="text-xs text-cyan-400 mt-1 md:mt-2">
-                  Male to Female 
+                  Male to Female
                 </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -517,7 +584,7 @@ export default function DashboardPage() {
         <Card className="lg:col-span-2 bg-slate-800 border-slate-700">
           <CardHeader className="p-4 md:p-6">
             <CardTitle className="text-base md:text-lg text-white">
-              Student Enrollment Trend 
+              Student Enrollment Trend
             </CardTitle>
             <CardDescription className="text-xs md:text-sm text-slate-400">
               Last 6 months

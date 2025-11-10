@@ -1,96 +1,123 @@
-"use client"
+"use client";
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import SalaryTable from "@/components/salaries/salary-table"
-import SalaryForm from "@/components/salaries/salary-form"
-import { Plus, Search, Wallet, TrendingUp, Calendar } from "lucide-react"
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import SalaryTable from "@/components/salaries/salary-table";
+import SalaryForm from "@/components/salaries/salary-form";
+import { Plus, Search, Wallet, TrendingUp, Calendar } from "lucide-react";
 
 type TeacherDto = {
-  id?: number
-  // server may have firstName/lastName or a single name field
-  firstName?: string
-  lastName?: string
-  name?: string
-}
+  id?: number;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+};
 
 type SalaryDto = {
-  id?: number
-  amount: number // frontend uses number; server expects BigDecimal
-  paymentDate: string // ISO date yyyy-mm-dd
-  paymentMode?: string
-  status?: string
-  remarks?: string | null
-  teacher?: TeacherDto | null
-}
+  id?: number;
+  amount: number;
+  paymentDate: string;
+  paymentMode?: string;
+  status?: string;
+  remarks?: string | null;
+  teacher?: TeacherDto | null;
+};
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 export default function SalariesPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [showForm, setShowForm] = useState(false)
-  const [salaries, setSalaries] = useState<SalaryDto[]>([])
-  const [loading, setLoading] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [salaries, setSalaries] = useState<SalaryDto[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const getAuthHeaders = () => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    return token
+      ? {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }
+      : { "Content-Type": "application/json" };
+  };
+
+  const handleUnauthorized = () => {
+    localStorage.removeItem("authToken");
+    router.push("/");
+  };
 
   // fetch list from GET /api/teacher/salary/
   const fetchSalaries = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/teacher/salary/`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      })
-      if (!res.ok) throw new Error(`Failed to fetch salaries (${res.status})`)
-      const data = await res.json()
-      if (!Array.isArray(data)) {
-        // if server wraps in { data: [...] }
-        if (data?.data && Array.isArray(data.data)) setSalaries(data.data)
-        else throw new Error("Unexpected response shape from salary API")
+      const headers = getAuthHeaders();
+      const res = await axios.get(`${API_BASE}/api/teacher/salary/`, { headers });
+      const data = res.data;
+      if (Array.isArray(data)) {
+        setSalaries(data);
+      } else if (data?.data && Array.isArray(data.data)) {
+        setSalaries(data.data);
       } else {
-        setSalaries(data)
+        // if server returns single object or unexpected shape, attempt to coerce
+        setSalaries(Array.isArray(data) ? data : []);
       }
     } catch (err: any) {
-      console.error(err)
-      setError(err?.message ?? "Unknown error")
+      console.error(err);
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        handleUnauthorized();
+      } else {
+        setError(err?.message ?? "Unknown error");
+      }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchSalaries()
-  }, [])
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      router.push("/");
+      return;
+    }
+    fetchSalaries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // helper to get display name from teacher DTO
   const getTeacherName = (t?: TeacherDto | null) => {
-    if (!t) return "Unknown"
-    if (t.name && typeof t.name === "string") return t.name
-    if (t.firstName || t.lastName) return `${t.firstName ?? ""} ${t.lastName ?? ""}`.trim()
-    if (t.id) return `Teacher #${t.id}`
-    return "Teacher"
-  }
+    if (!t) return "Unknown";
+    if (t.name && typeof t.name === "string") return t.name;
+    if (t.firstName || t.lastName) return `${t.firstName ?? ""} ${t.lastName ?? ""}`.trim();
+    if (t.id) return `Teacher #${t.id}`;
+    return "Teacher";
+  };
 
   const filteredSalaries = salaries.filter((s) => {
-    const teacherName = getTeacherName(s.teacher).toLowerCase()
-    const q = searchTerm.trim().toLowerCase()
+    const teacherName = getTeacherName(s.teacher).toLowerCase();
+    const q = searchTerm.trim().toLowerCase();
     return (
       teacherName.includes(q) ||
       String(s.teacher?.id ?? "").includes(q) ||
       String(s.id ?? "").includes(q) ||
       (s.status ?? "").toLowerCase().includes(q)
-    )
-  })
+    );
+  });
 
   // stats (using amount as net paid)
   const stats = {
@@ -102,7 +129,7 @@ export default function SalariesPage() {
       salaries.length > 0
         ? Math.round(salaries.reduce((sum, s) => sum + (Number(s.amount ?? 0) || 0), 0) / salaries.length)
         : 0,
-  }
+  };
 
   /**
    * handleAddSalary
@@ -110,87 +137,82 @@ export default function SalariesPage() {
    * { teacherId: number|string, amount: number|string, paymentDate: "YYYY-MM-DD", paymentMode: string, status: string, remarks?: string }
    *
    * Endpoint: POST /api/teacher/salary/create/{teacherId}
-   * Body: SalaryDto fields (amount, paymentDate, paymentMode, status, remarks) - server will attach teacher from path
    */
   const handleAddSalary = async (newSalary: Partial<SalaryDto> & { teacherId: number | string }) => {
-    setSaving(true)
-    setError(null)
-
+    setSaving(true);
+    setError(null);
     try {
-      const teacherId = newSalary.teacherId
-      if (!teacherId) throw new Error("teacherId is required to create salary")
+      const teacherId = newSalary.teacherId;
+      if (!teacherId) throw new Error("teacherId is required to create salary");
 
-      // build payload to send
       const payload = {
         amount: Number(newSalary.amount ?? 0),
         paymentDate: newSalary.paymentDate ?? new Date().toISOString().split("T")[0],
         paymentMode: newSalary.paymentMode ?? "Bank Transfer",
         status: newSalary.status ?? "Paid",
         remarks: newSalary.remarks ?? null,
-      }
+      };
 
-      const res = await fetch(
+      const headers = getAuthHeaders();
+      const res = await axios.post(
         `${API_BASE}/api/teacher/salary/create/${encodeURIComponent(String(teacherId))}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      )
+        payload,
+        { headers },
+      );
 
-      if (!res.ok) {
-        const text = await res.text().catch(() => "")
-        throw new Error(`Failed to create salary (${res.status}) ${text}`)
-      }
-
-      const created: SalaryDto = await res.json()
-      setSalaries((prev) => [...prev, created])
-      setShowForm(false)
+      const created: SalaryDto = res.data;
+      setSalaries((prev) => [...prev, created]);
+      setShowForm(false);
     } catch (err: any) {
-      console.error(err)
-      setError(err?.message ?? "Failed to add salary")
-      alert(err?.message ?? "Failed to add salary")
+      console.error(err);
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        handleUnauthorized();
+      } else {
+        setError(err?.message ?? "Failed to add salary");
+        alert(err?.message ?? "Failed to add salary");
+      }
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   /**
    * Delete salary
    * DELETE /api/teacher/salary/{salaryId}
    */
   const handleDeleteSalary = async (id?: number | string) => {
-    if (!id) return
-    if (!confirm("Delete this salary record?")) return
+    if (!id) return;
+    if (!confirm("Delete this salary record?")) return;
 
-    const prev = salaries
-    setSalaries((s) => s.filter((x) => String(x.id) !== String(id)))
+    const prev = salaries;
+    setSalaries((s) => s.filter((x) => String(x.id) !== String(id)));
 
     try {
-      const res = await fetch(`${API_BASE}/api/teacher/salary/${encodeURIComponent(String(id))}`, {
-        method: "DELETE",
-      })
-      if (!res.ok) throw new Error(`Delete failed (${res.status})`)
+      const headers = getAuthHeaders();
+      const res = await axios.delete(`${API_BASE}/api/teacher/salary/${encodeURIComponent(String(id))}`, { headers });
+      if (res.status >= 400) throw new Error(`Delete failed (${res.status})`);
     } catch (err: any) {
-      console.error(err)
-      setSalaries(prev) // rollback
-      alert(err?.message ?? "Failed to delete salary on server")
+      console.error(err);
+      setSalaries(prev); // rollback
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        handleUnauthorized();
+      } else {
+        alert(err?.message ?? "Failed to delete salary on server");
+      }
     }
-  }
+  };
 
   /**
    * Mark paid
-   * The backend doesn't define a specific mark-paid path. We'll PATCH the salary resource with status+paymentDate:
-   * PATCH /api/teacher/salary/{salaryId} { status: "Paid", paymentDate: "YYYY-MM-DD" }
-   *
-   * If your backend requires a different endpoint (eg. /pay or /mark-paid), change the URL below.
+   * Try PATCH /api/teacher/salary/{salaryId}
+   * Fallback to PUT if PATCH not supported.
    */
   const handleMarkPaid = async (id?: number | string) => {
-    if (!id) return
-    const paidDate = new Date().toISOString().split("T")[0]
+    if (!id) return;
+    const paidDate = new Date().toISOString().split("T")[0];
 
     // optimistic update
-    const prev = salaries
+    const prev = salaries;
     setSalaries((s) =>
       s.map((x) =>
         String(x.id) === String(id)
@@ -201,30 +223,38 @@ export default function SalariesPage() {
             }
           : x,
       ),
-    )
+    );
 
     try {
-      const res = await fetch(`${API_BASE}/api/teacher/salary/${encodeURIComponent(String(id))}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Paid", paymentDate: paidDate }),
-      })
-      if (!res.ok) {
-        // fallback to PUT if PATCH unsupported
-        const fallback = await fetch(`${API_BASE}/api/teacher/salary/${encodeURIComponent(String(id))}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "Paid", paymentDate: paidDate }),
-        })
-        if (!fallback.ok) throw new Error(`Failed to mark paid (${fallback.status})`)
+      const headers = getAuthHeaders();
+      // attempt PATCH
+      try {
+        const res = await axios.patch(
+          `${API_BASE}/api/teacher/salary/${encodeURIComponent(String(id))}`,
+          { status: "Paid", paymentDate: paidDate },
+          { headers },
+        );
+        if (res.status >= 400) throw new Error(`Patch failed (${res.status})`);
+      } catch (patchErr) {
+        // fallback to PUT
+        const res = await axios.put(
+          `${API_BASE}/api/teacher/salary/${encodeURIComponent(String(id))}`,
+          { status: "Paid", paymentDate: paidDate },
+          { headers },
+        );
+        if (res.status >= 400) throw new Error(`Put fallback failed (${res.status})`);
       }
     } catch (err: any) {
-      console.error(err)
-      alert(err?.message ?? "Failed to mark paid on server; UI was updated optimistically.")
-      // optionally rollback by re-fetching:
-      // await fetchSalaries()
+      console.error(err);
+      alert(err?.message ?? "Failed to mark paid on server; UI was updated optimistically.");
+      // rollback by re-fetching to ensure consistent state
+      await fetchSalaries();
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        handleUnauthorized();
+      }
     }
-  }
+  };
+
 
   return (
     <div className="p-6 space-y-6">

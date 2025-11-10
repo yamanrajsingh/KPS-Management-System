@@ -1,8 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Users, User2, BarChart3 } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+import { useEffect, useState } from "react";
+import { Users, User2, BarChart3 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
+import axios from "axios";
 import {
   ResponsiveContainer,
   PieChart,
@@ -13,47 +15,120 @@ import {
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid
-} from "recharts"
+  CartesianGrid,
+  Legend,
+} from "recharts";
+
+type Stats = {
+  totalStudents: number;
+  maleStudents: number;
+  femaleStudents: number;
+};
 
 export default function StudentStats() {
-  const [stats, setStats] = useState({
+  const router = useRouter();
+
+  const [stats, setStats] = useState<Stats>({
     totalStudents: 0,
     maleStudents: 0,
     femaleStudents: 0,
-  })
+  });
+  const [classDistribution, setClassDistribution] = useState<
+    { className: string; count: number }[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [classDistribution, setClassDistribution] = useState<{ className: string; count: number }[]>([])
+  const getAuthHeaders = () => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    return token
+      ? {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }
+      : { "Content-Type": "application/json" };
+  };
+
+   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
   useEffect(() => {
-    // Fetch overall student stats
-    fetch("http://localhost:8080/api/students/stats")
-      .then((res) => res.json())
-      .then((data) => setStats(data))
-      .catch((err) => console.error("Error fetching student stats:", err))
+    // redirect to login if no token
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      router.push("/");
+      return;
+    }
 
-    // Fetch class-wise distribution
-    fetch("http://localhost:8080/api/students/class-distribution")
-      .then((res) => res.json())
-      .then((data) => {
-        // Transform object to array for Recharts
-        const distributionArray = Object.entries(data).map(([className, count]) => ({
-          className,
-          count: count as number,
-        }))
-        setClassDistribution(distributionArray)
-      })
-      .catch((err) => console.error("Error fetching class distribution:", err))
-  }, [])
+    const headers = getAuthHeaders();
 
-  const { totalStudents, maleStudents, femaleStudents } = stats
+    const fetchAll = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // fetch stats
+        const statsRes = await axios.get<Stats>(`${apiBaseUrl}/api/students/stats`, {
+          headers,
+        });
+        setStats(statsRes.data ?? { totalStudents: 0, maleStudents: 0, femaleStudents: 0 });
+
+        // fetch class distribution
+        const distRes = await axios.get(`${apiBaseUrl}/api/students/class-distribution`, {
+          headers,
+        });
+
+        const raw = distRes.data;
+
+        // normalize different possible shapes:
+        // - { "Class 1": 10, "Class 2": 12 }
+        // - [ { className: "Class 1", count: 10 }, ... ]
+        let distributionArray: { className: string; count: number }[] = [];
+
+        if (Array.isArray(raw)) {
+          // assume array of objects already
+          distributionArray = raw.map((r: any) => ({
+            className: r.className ?? r.name ?? String(r.class ?? r.name ?? "Unknown"),
+            count: Number(r.count ?? r.value ?? 0),
+          }));
+        } else if (raw && typeof raw === "object") {
+          distributionArray = Object.entries(raw).map(([className, count]) => ({
+            className,
+            count: Number(count ?? 0),
+          }));
+        } else {
+          // unexpected shape — leave empty
+          distributionArray = [];
+        }
+
+        setClassDistribution(distributionArray);
+      } catch (err: any) {
+        console.error("Error fetching student stats or distribution:", err);
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          // invalid/expired token -> clear & redirect
+          localStorage.removeItem("authToken");
+          router.push("/");
+          setError("Unauthorized. Redirecting to login.");
+        } else {
+          setError("Failed to load student statistics.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const { totalStudents, maleStudents, femaleStudents } = stats;
 
   const genderData = [
     { name: "Male", value: maleStudents },
     { name: "Female", value: femaleStudents },
-  ]
+  ];
 
-  const COLORS = ["#3b82f6", "#ec4899"]
+  const COLORS = ["#3b82f6", "#ec4899"]; // blue, pink
 
   return (
     <div className="space-y-4 md:space-y-6">

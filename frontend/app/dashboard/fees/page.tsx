@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import {
   Card,
@@ -19,6 +20,8 @@ import FeeReceipt from "@/components/fees/fee-receipt";
 import { Plus, Search, Download } from "lucide-react";
 
 export default function FeesPage() {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+  const router = useRouter();
   const [fees, setFees] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,57 +40,103 @@ export default function FeesPage() {
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState("id");
-  const [sortDir, setSortDir] = useState("asc");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  const BASE_URL = "http://localhost:8080/api/students/fee";
+  const BASE_URL = `${apiBaseUrl}/api/students/fee`;
 
+  // helper to read token & return headers (so every request is consistent)
+  const getAuthHeaders = () => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    return token
+      ? {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }
+      : { "Content-Type": "application/json" };
+  };
 
+  // Redirect if no token on mount
+  useEffect(() => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    if (!token) {
+      console.error("No auth token found. Please log in.");
+      router.push("/");
+    }
+    // no dependencies here — only run on mount for redirect check
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // 🟢 FETCH ALL FEES (with pagination + sorting)
-const fetchFees = async () => {
-  try {
-    setLoading(true);
-    const res = await axios.get(BASE_URL+"/", {
-      params: {
-        pageNumber: currentPage,
-        pageSize,
-        sortBy,
-        sortDir,
-        className: filters.class,
-        paymentStatus: filters.paymentStatus,
-        paymentMode: filters.paymentMode,
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo,
-        search: searchTerm,
-      },
-    });
+  // 🟢 FETCH ALL FEES (with pagination + sorting + filters + search)
+  const fetchFees = async () => {
+    try {
+      setLoading(true);
+      const headers = getAuthHeaders();
 
-    const data = res.data;
+      // correct axios.get call: axios.get(url, { params: {...}, headers })
+      const res = await axios.get(`${BASE_URL}/`, {
+        params: {
+          pageNumber: currentPage,
+          pageSize,
+          sortBy,
+          sortDir,
+          className: filters.class || undefined,
+          paymentStatus: filters.paymentStatus || undefined,
+          paymentMode: filters.paymentMode || undefined,
+          dateFrom: filters.dateFrom || undefined,
+          dateTo: filters.dateTo || undefined,
+          search: searchTerm || undefined,
+        },
+        headers,
+      });
 
-    // Map fees to include studentName and class
-    const mappedFees = data.content.map((f: any) => ({
-      ...f,
-      studentName: f.student ? `${f.student.firstName} ${f.student.lastName}` : "",
-      class: f.student ? f.student.className : "",
-    }));
+      const data = res.data;
 
-    setFees(mappedFees);
-    setTotalPages(data.totalPages);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
+      // Map fees to include studentName and className consistently
+      const mappedFees = (data.content || []).map((f: any) => ({
+        ...f,
+        studentName: f.student ? `${f.student.firstName} ${f.student.lastName}` : "",
+        class: f.student ? f.student.className : f.className || f.class || "",
+        className: f.student ? f.student.className : f.className || f.class || "",
+      }));
 
+      setFees(mappedFees);
+      setTotalPages(data.totalPages ?? 1);
+    } catch (err) {
+      console.error("Error fetching fees:", err);
+      // optional: if 401, redirect to login
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        localStorage.removeItem("authToken");
+        router.push("/");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // refetch when any param that affects list changes
   useEffect(() => {
     fetchFees();
-  }, [currentPage, pageSize, sortBy, sortDir]);
+    // include everything that should cause a refetch
+  }, [
+    currentPage,
+    pageSize,
+    sortBy,
+    sortDir,
+    filters.class,
+    filters.paymentStatus,
+    filters.paymentMode,
+    filters.dateFrom,
+    filters.dateTo,
+    searchTerm,
+  ]);
 
   // 🟡 ADD OR UPDATE FEE
   const handleAddFee = async (newFee: any) => {
     try {
+      const headers = getAuthHeaders();
+
       if (editingFee) {
         const payload = {
           academicYear: newFee.academicYear,
@@ -97,7 +146,7 @@ const fetchFees = async () => {
           paymentMode: newFee.paymentMode,
           remarks: newFee.remarks,
         };
-        await axios.put(`${BASE_URL}/${editingFee.id}`, payload);
+        await axios.put(`${BASE_URL}/${editingFee.id}`, payload, { headers });
       } else {
         const payload = {
           studentId: newFee.studentId,
@@ -108,10 +157,10 @@ const fetchFees = async () => {
           paymentMode: newFee.paymentMode,
           remarks: newFee.remarks,
         };
-        await axios.post(`${BASE_URL}/`, payload);
+        await axios.post(`${BASE_URL}/`, payload, { headers });
       }
 
-      fetchFees();
+      await fetchFees();
       setShowForm(false);
       setEditingFee(null);
     } catch (error) {
@@ -121,27 +170,28 @@ const fetchFees = async () => {
 
   // 🔴 DELETE FEE
   const handleDeleteFee = async (id: number) => {
-    if (confirm("Are you sure you want to delete this fee record?")) {
-      try {
-        await axios.delete(`${BASE_URL}/${id}`);
-        fetchFees();
-      } catch (error) {
-        console.error("Error deleting fee:", error);
-      }
+    if (!confirm("Are you sure you want to delete this fee record?")) return;
+    try {
+      const headers = getAuthHeaders();
+      await axios.delete(`${BASE_URL}/${id}`, { headers });
+      fetchFees();
+    } catch (error) {
+      console.error("Error deleting fee:", error);
     }
   };
 
   // 🟠 EDIT MODE
   const handleEditFee = async (fee: any) => {
     try {
-      const res = await axios.get(`${BASE_URL}/fId/${fee.id}`);
+      const headers = getAuthHeaders();
+      const res = await axios.get(`${BASE_URL}/fId/${fee.id}`, { headers });
       const f = res.data;
 
       const formatted = {
         id: f.id,
         studentId: f.studentId,
-        studentName: `${f.student.firstName} ${f.student.lastName}`,
-        class: f.student.className,
+        studentName: f.student ? `${f.student.firstName} ${f.student.lastName}` : "",
+        class: f.student ? f.student.className : f.className || f.class || "",
         academicYear: f.academicYear,
         totalAmount: f.totalAmount,
         amountPaid: f.amountPaid,
@@ -175,7 +225,8 @@ const fetchFees = async () => {
         remarks: feeToUpdate.remarks,
       };
 
-      await axios.put(`${BASE_URL}/${id}`, updatedFee);
+      const headers = getAuthHeaders();
+      await axios.put(`${BASE_URL}/${id}`, updatedFee, { headers });
       fetchFees();
     } catch (error) {
       console.error("Error marking fee as paid:", error);
@@ -196,17 +247,28 @@ const fetchFees = async () => {
         "Payment Date",
       ],
       ...fees.map((f) => [
-        f.studentName,
-        f.class,
-        f.totalAmount,
-        f.amountPaid,
-        f.dueAmount,
-        f.status,
-        f.paymentMode,
-        f.paymentDate,
+        f.studentName || "",
+        f.class || f.className || "",
+        f.totalAmount ?? "",
+        f.amountPaid ?? "",
+        f.dueAmount ?? "",
+        f.status ?? "",
+        f.paymentMode ?? "",
+        f.paymentDate ?? "",
       ]),
     ]
-      .map((row) => row.join(","))
+      .map((row) =>
+        row
+          .map((cell) => {
+            // escape quotes and commas
+            const str = String(cell ?? "");
+            if (str.includes(",") || str.includes('"')) {
+              return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+          })
+          .join(",")
+      )
       .join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -215,49 +277,37 @@ const fetchFees = async () => {
     a.href = url;
     a.download = "fees_report.csv";
     a.click();
+    window.URL.revokeObjectURL(url);
   };
 
-  // 🧩 FILTER & SEARCH
-const filteredFees = fees.filter((fee) => {
-  // Safe values (prevent undefined errors)
-  const studentName = fee.studentName || "";
-  const studentId = fee.studentId || "";
-  const receiptNumber = fee.receiptNumber || "";
-  const className = fee.className || fee.class || "";
-  const paymentStatus = fee.paymentStatus || fee.status || "";
-  const paymentMode = fee.paymentMode || "";
-  const paymentDate = fee.paymentDate || fee.lastUpdated || null;
+  // 🧩 FILTER & SEARCH (client-side guard; main filtering is done server-side via params)
+  const filteredFees = fees.filter((fee) => {
+    const studentName = (fee.studentName || "").toString();
+    const studentId = (fee.studentId || "").toString();
+    const receiptNumber = (fee.receiptNumber || "").toString();
+    const className = (fee.class || fee.className || "").toString();
+    const paymentStatus = (fee.paymentStatus || fee.status || "").toString();
+    const paymentMode = (fee.paymentMode || "").toString();
+    const paymentDate = fee.paymentDate || fee.lastUpdated || null;
 
-  // Search matching
-  const matchesSearch =
-    studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    String(studentId).includes(searchTerm) ||
-    receiptNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      studentId.includes(searchTerm) ||
+      receiptNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
-  // Filter matching
-  const matchesClass = !filters.class || className === filters.class;
-  const matchesStatus =
-    !filters.paymentStatus || paymentStatus === filters.paymentStatus;
-  const matchesMode =
-    !filters.paymentMode || paymentMode === filters.paymentMode;
+    const matchesClass = !filters.class || className === filters.class;
+    const matchesStatus = !filters.paymentStatus || paymentStatus === filters.paymentStatus;
+    const matchesMode = !filters.paymentMode || paymentMode === filters.paymentMode;
 
-  const matchesDateFrom =
-    !filters.dateFrom ||
-    (paymentDate && new Date(paymentDate) >= new Date(filters.dateFrom));
+    const matchesDateFrom =
+      !filters.dateFrom || (paymentDate && new Date(paymentDate) >= new Date(filters.dateFrom));
 
-  const matchesDateTo =
-    !filters.dateTo ||
-    (paymentDate && new Date(paymentDate) <= new Date(filters.dateTo));
+    const matchesDateTo =
+      !filters.dateTo || (paymentDate && new Date(paymentDate) <= new Date(filters.dateTo));
 
-  return (
-    matchesSearch &&
-    matchesClass &&
-    matchesStatus &&
-    matchesMode &&
-    matchesDateFrom &&
-    matchesDateTo
-  );
-});
+    return matchesSearch && matchesClass && matchesStatus && matchesMode && matchesDateFrom && matchesDateTo;
+  });
+
 
   return (
     <div className="p-3 md:p-6 space-y-6">

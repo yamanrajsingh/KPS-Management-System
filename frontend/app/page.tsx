@@ -1,59 +1,81 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import type React from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { AlertCircle } from "lucide-react"
+} from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
+
+type AuthResponse = {
+  token: string;
+};
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
     try {
-      // Fetch admin data from backend
-      const res = await fetch("http://localhost:8080/api/admin")
+      const res = await fetch(`${apiBaseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
       if (!res.ok) {
-        throw new Error("Failed to connect to server")
+        // try to parse error message from server if provided
+        let message = "Invalid email or password";
+        console.log("API Base URL:", apiBaseUrl);
+        try {
+          const errJson = await res.json();
+          if (errJson && errJson.message) message = String(errJson.message);
+        } catch {
+          // ignore parse errors and keep generic message
+        }
+        throw new Error(message);
       }
 
-      const data = await res.json()
+      const data: AuthResponse = await res.json();
 
-      // Assuming your API returns an array with one admin object
-      const admin = data[0]
-
-      if (email === admin.email && password === admin.password) {
-        // Store auth info in localStorage
-        localStorage.setItem("authToken", "real-admin-token")
-        localStorage.setItem("userEmail", email)
-
-        router.push("/dashboard")
-      } else {
-        setError("Invalid email or password")
+      if (!data?.token) {
+        throw new Error("No token returned from server");
       }
-    } catch (err) {
-      console.error("Login error:", err)
-      setError("Unable to connect to the server. Please try again later.")
+
+      // Save token and user email
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("userEmail", email);
+
+      // navigate to dashboard
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(
+        err?.message ??
+          "Unable to connect to the server. Please try again later."
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
@@ -80,7 +102,9 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Email</label>
+                <label className="text-sm font-medium text-slate-300">
+                  Email
+                </label>
                 <Input
                   type="email"
                   placeholder="admin@school.com"
@@ -88,11 +112,14 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
                   disabled={isLoading}
+                  required
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Password</label>
+                <label className="text-sm font-medium text-slate-300">
+                  Password
+                </label>
                 <Input
                   type="password"
                   placeholder="••••••••"
@@ -100,6 +127,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
                   disabled={isLoading}
+                  required
                 />
               </div>
 
@@ -111,17 +139,9 @@ export default function LoginPage() {
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-
-            <div className="mt-6 pt-6 border-t border-slate-700">
-              <p className="text-xs text-slate-500 text-center">
-                Use credentials: <br />
-                <span className="text-blue-400">Email:</span> kps@gmail.com <br />
-                <span className="text-blue-400">Password:</span> adminkps
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }
