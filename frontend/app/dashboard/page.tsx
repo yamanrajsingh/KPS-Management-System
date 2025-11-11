@@ -49,13 +49,13 @@ const sampleStudentData = [
   { month: "Jun", students: 195 },
 ];
 
-const feeStatusData = [
+const feeStatusData = [   ///  sample data
   { name: "Collected", value: 75, color: "#10b981" },
   { name: "Pending", value: 20, color: "#f59e0b" },
   { name: "Overdue", value: 5, color: "#ef4444" },
 ];
 
-const feeCollectionData = [
+const feeCollectionData = [  ///  sample data
   { month: "Jan", collected: 12.5, pending: 2.5, overdue: 0.5 },
   { month: "Feb", collected: 13.2, pending: 2.8, overdue: 0.8 },
   { month: "Mar", collected: 14.0, pending: 2.2, overdue: 1.2 },
@@ -64,7 +64,7 @@ const feeCollectionData = [
   { month: "Jun", collected: 15.8, pending: 1.5, overdue: 0.6 },
 ];
 
-const salaryData = [
+const salaryData = [ ///  sample data
   { month: "Jan", amount: 45000 },
   { month: "Feb", amount: 45000 },
   { month: "Mar", amount: 48000 },
@@ -73,14 +73,14 @@ const salaryData = [
   { month: "Jun", amount: 45000 },
 ];
 
-const attendanceData = [
+const attendanceData = [  ///  sample data
   { class: "9A", present: 42, absent: 3, percentage: 93 },
   { class: "9B", present: 38, absent: 5, percentage: 88 },
   { class: "10A", present: 45, absent: 2, percentage: 96 },
   { class: "10B", present: 40, absent: 4, percentage: 91 },
 ];
 
-const topStudents = [
+const topStudents = [  ///  sample data
   { name: "Aarav Sharma", class: "10A", score: 95, rank: 1 },
   { name: "Priya Patel", class: "9A", score: 93, rank: 2 },
   { name: "Rohan Singh", class: "10B", score: 91, rank: 3 },
@@ -88,7 +88,7 @@ const topStudents = [
   { name: "Vikram Kumar", class: "10A", score: 87, rank: 5 },
 ];
 
-const upcomingEvents = [
+const upcomingEvents = [  ///  sample data
   {
     title: "Parent-Teacher Meeting",
     date: "2024-01-15",
@@ -115,7 +115,7 @@ const upcomingEvents = [
   },
 ];
 
-const teacherInsights = [
+const teacherInsights = [   ///  sample data
   {
     name: "Rajesh Kumar",
     subject: "Mathematics",
@@ -144,6 +144,13 @@ type Stats = {
   femaleStudents: number;
 };
 
+interface MonthlyFee {
+  month: string
+  collected: number
+  pending: number
+  overdue: number
+}
+
 const formatCurrencyINR = (n: number) => {
   if (n >= 100000) {
     return `₹${(n / 100000).toFixed(1)}L`;
@@ -165,18 +172,24 @@ export default function DashboardPage() {
   const [feesCollected, setFeesCollected] = useState<number>(1580000);
   const [pendingFees, setPendingFees] = useState<number>(150000);
   const [overdueFees, setOverdueFees] = useState<number>(60000);
+  const [monthlyData, setMonthlyData] = useState<MonthlyFee[]>([])
   const [totalSalaryPaid, setTotalSalaryPaid] = useState<number>(45000);
 
   // centralized stats object (keeps source of truth)
-  const [stats, setStats] = useState<Stats>({ maleStudents: 0, femaleStudents: 0 });
+  const [stats, setStats] = useState<Stats>({
+    maleStudents: 0,
+    femaleStudents: 0,
+  });
 
   // enrollment chart state
-  const [studentData, setStudentData] = useState<EnrollmentPoint[]>(sampleStudentData);
+  const [studentData, setStudentData] =
+    useState<EnrollmentPoint[]>(sampleStudentData);
   const [studentLoading, setStudentLoading] = useState<boolean>(false);
   const [studentError, setStudentError] = useState<string | null>(null);
 
   const getAuthHeaders = () => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
@@ -186,7 +199,8 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
     if (!token) {
       router.push("/");
       return;
@@ -213,17 +227,26 @@ export default function DashboardPage() {
     (async () => {
       // 1) fetch stats via axios (single source of truth for male/female)
       try {
-        const statsRes = await axios.get<Stats>(`${apiBaseUrl}/api/students/stats`, {
-          headers,
-        });
-        const statsData = statsRes.data ?? { maleStudents: 0, femaleStudents: 0 };
+        const statsRes = await axios.get<Stats>(
+          `${apiBaseUrl}/api/students/stats`,
+          {
+            headers,
+          }
+        );
+        const statsData = statsRes.data ?? {
+          maleStudents: 0,
+          femaleStudents: 0,
+        };
         setStats(statsData);
         // keep separate states in sync for places referencing them directly
         setMaleStudents(statsData.maleStudents ?? 0);
         setFemaleStudents(statsData.femaleStudents ?? 0);
 
         // if API returns totalStudents inside stats, update it too (defensive)
-        if ((statsData as any).totalStudents && typeof (statsData as any).totalStudents === "number") {
+        if (
+          (statsData as any).totalStudents &&
+          typeof (statsData as any).totalStudents === "number"
+        ) {
           setTotalStudents((statsData as any).totalStudents);
         }
       } catch (err: any) {
@@ -252,19 +275,29 @@ export default function DashboardPage() {
 
             if (typeof item.month === "string") {
               monthLabel = item.month;
-            } else if (typeof item.month === "number" || typeof item.monthNumber === "number") {
+            } else if (
+              typeof item.month === "number" ||
+              typeof item.monthNumber === "number"
+            ) {
               const m = Number(item.month ?? item.monthNumber);
               if (!Number.isNaN(m) && m >= 1 && m <= 12) {
-                monthLabel = new Date(2020, m - 1, 1).toLocaleString("en-US", { month: "short" });
+                monthLabel = new Date(2020, m - 1, 1).toLocaleString("en-US", {
+                  month: "short",
+                });
               }
             }
 
-            if (typeof item.students === "number") students = Number(item.students);
+            if (typeof item.students === "number")
+              students = Number(item.students);
             else if (typeof item.cnt === "number") students = Number(item.cnt);
-            else if (typeof item.count === "number") students = Number(item.count);
+            else if (typeof item.count === "number")
+              students = Number(item.count);
             else students = Number(item.value ?? 0);
 
-            return { month: monthLabel || "", students: Number.isFinite(students) ? students : 0 };
+            return {
+              month: monthLabel || "",
+              students: Number.isFinite(students) ? students : 0,
+            };
           });
 
           if (normalized.length > 0) setStudentData(normalized);
@@ -295,8 +328,10 @@ export default function DashboardPage() {
         } else {
           const data = await res.json().catch(() => null);
           if (Array.isArray(data)) setTotalTeachers(data.length);
-          else if (data && typeof (data as any).length === "number") setTotalTeachers((data as any).length);
-          else if (data && typeof (data as any).count === "number") setTotalTeachers((data as any).count);
+          else if (data && typeof (data as any).length === "number")
+            setTotalTeachers((data as any).length);
+          else if (data && typeof (data as any).count === "number")
+            setTotalTeachers((data as any).count);
         }
       } catch (err) {
         console.warn("teachers fetch failed:", err);
@@ -304,31 +339,61 @@ export default function DashboardPage() {
 
       // 4) fee summary
       try {
-        const res = await fetch(`${apiBaseUrl}/api/students/fee/summary`, { headers });
+        const res = await fetch(`${apiBaseUrl}/api/students/fee/summary`, {
+          headers,
+        });
         if (res.status === 401) handleUnauthorized();
         else {
           const data = await res.json().catch(() => null);
           if (data) {
-            if (typeof data.totalCollected === "number") setFeesCollected(data.totalCollected);
-            if (typeof data.totalPending === "number") setPendingFees(data.totalPending);
-            if (typeof data.totalOverdue === "number") setOverdueFees(data.totalOverdue);
+            if (typeof data.totalCollected === "number")
+              setFeesCollected(data.totalCollected);
+            if (typeof data.totalPending === "number")
+              setPendingFees(data.totalPending);
+            if (typeof data.totalOverdue === "number")
+              setOverdueFees(data.totalOverdue);
           }
         }
       } catch (err) {
         console.warn("fee summary fetch failed:", err);
       }
 
+
+
+     try{
+       // 2️⃣ Monthly Fee Trend
+        const monthlyRes = await fetch(`${apiBaseUrl}/api/students/fee/monthly`,{headers})
+        const monthlyJson: MonthlyFee[] = await monthlyRes.json()
+        setMonthlyData(monthlyJson)
+     }
+      catch(err){
+        
+          // don't crash; keep defaults
+          console.warn("axios /api/students/fee/monthly failed:", err);
+        
+      }
+
+
+
       // 5) teacher salaries
       try {
-        const res = await fetch(`${apiBaseUrl}/api/teacher/salary/`, { headers });
+        const res = await fetch(`${apiBaseUrl}/api/teacher/salary/`, {
+          headers,
+        });
         if (res.status === 401) handleUnauthorized();
         else {
           const data = await res.json().catch(() => null);
           if (Array.isArray(data)) {
-            const sum = data.reduce((acc: number, item: any) => acc + (Number(item.amount) || 0), 0);
+            const sum = data.reduce(
+              (acc: number, item: any) => acc + (Number(item.amount) || 0),
+              0
+            );
             if (!isNaN(sum)) setTotalSalaryPaid(sum);
           } else if (data && Array.isArray((data as any).salaries)) {
-            const sum = (data as any).salaries.reduce((acc: number, item: any) => acc + (Number(item.amount) || 0), 0);
+            const sum = (data as any).salaries.reduce(
+              (acc: number, item: any) => acc + (Number(item.amount) || 0),
+              0
+            );
             if (!isNaN(sum)) setTotalSalaryPaid(sum);
           } else if (data && typeof (data as any).total === "number") {
             setTotalSalaryPaid((data as any).total);
@@ -346,7 +411,10 @@ export default function DashboardPage() {
   }, []);
 
   // computed values
-  const genderRatio = femaleStudents === 0 ? "—" : (maleStudents / femaleStudents).toFixed(2) + ":1";
+  const genderRatio =
+    femaleStudents === 0
+      ? "—"
+      : (maleStudents / femaleStudents).toFixed(2) + ":1";
 
   // derive gender pie data from stats (single source)
   const deriveGenderData = (s: Stats) => {
@@ -359,15 +427,35 @@ export default function DashboardPage() {
   };
 
   // small custom tooltip for pie (renders count + percent)
-  function GenderTooltip({ active, payload }: { active?: boolean; payload?: any }) {
+  function GenderTooltip({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: any;
+  }) {
     if (!active || !payload || !payload.length) return null;
     const item = payload[0].payload;
-    const total = deriveGenderData(stats).reduce((acc, cur) => acc + cur.value, 0);
+    const total = deriveGenderData(stats).reduce(
+      (acc, cur) => acc + cur.value,
+      0
+    );
     const percent = total > 0 ? ((item.value / total) * 100).toFixed(1) : "0.0";
     return (
-      <div style={{ backgroundColor: "#0f172a", color: "#e2e8f0", padding: 8, borderRadius: 8, border: "1px solid #475569", minWidth: 120 }}>
+      <div
+        style={{
+          backgroundColor: "#0f172a",
+          color: "#e2e8f0",
+          padding: 8,
+          borderRadius: 8,
+          border: "1px solid #475569",
+          minWidth: 120,
+        }}
+      >
         <div style={{ fontSize: 12, opacity: 0.9 }}>{item.name}</div>
-        <div style={{ fontWeight: 700, marginTop: 4 }}>{item.value} students</div>
+        <div style={{ fontWeight: 700, marginTop: 4 }}>
+          {item.value} students
+        </div>
         <div style={{ fontSize: 12, marginTop: 2 }}>{percent}%</div>
       </div>
     );
@@ -379,7 +467,9 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs md:text-sm text-slate-400">{label}</p>
-            <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2 truncate">{value}</p>
+            <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2 truncate">
+              {value}
+            </p>
             {change && (
               <p className="text-xs text-green-400 mt-1 md:mt-2 flex items-center gap-1">
                 <TrendingUp className="w-3 h-3 flex-shrink-0" />
@@ -397,20 +487,53 @@ export default function DashboardPage() {
 
   // gender data derived for rendering
   const genderDataFromStats = deriveGenderData(stats);
-  const genderTotal = genderDataFromStats.reduce((acc, cur) => acc + cur.value, 0);
+  const genderTotal = genderDataFromStats.reduce(
+    (acc, cur) => acc + cur.value,
+    0
+  );
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-white">Dashboard</h1>
-        <p className="text-sm md:text-base text-slate-400 mt-1">Welcome to your school management system</p>
+        <p className="text-sm md:text-base text-slate-400 mt-1">
+          Welcome to your school management system
+        </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <StatCard icon={Users} label="Total Students" value={totalStudents} change="+12% this month" />
-        <StatCard icon={BookOpen} label="Total Teachers" value={totalTeachers} change="+2 this month" />
-        <StatCard icon={DollarSign} label="Fees Collected" value={formatCurrencyINR(feesCollected)} change={`Collection Rate: ${feesCollected > 0 ? ((feesCollected / Math.max(1, feesCollected + pendingFees + overdueFees)) * 100).toFixed(0) : 0}%`} />
-        <StatCard icon={Wallet} label="Salaries Paid" value={formatCurrencyINR(totalSalaryPaid)} change="On schedule" />
+        <StatCard
+          icon={Users}
+          label="Total Students"
+          value={totalStudents}
+          change="+12% this month"
+        />
+        <StatCard
+          icon={BookOpen}
+          label="Total Teachers"
+          value={totalTeachers}
+          change="+2 this month"
+        />
+        <StatCard
+          icon={DollarSign}
+          label="Fees Collected"
+          value={formatCurrencyINR(feesCollected)}
+          change={`Collection Rate: ${
+            feesCollected > 0
+              ? (
+                  (feesCollected /
+                    Math.max(1, feesCollected + pendingFees + overdueFees)) *
+                  100
+                ).toFixed(0)
+              : 0
+          }%`}
+        />
+        <StatCard
+          icon={Wallet}
+          label="Salaries Paid"
+          value={formatCurrencyINR(totalSalaryPaid)}
+          change="On schedule"
+        />
       </div>
 
       {/* Gender Statistics Section (cards) */}
@@ -419,9 +542,18 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Male Students</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">{maleStudents}</p>
-                <p className="text-xs text-blue-400 mt-1 md:mt-2">{((maleStudents / Math.max(1, totalStudents)) * 100).toFixed(1)}% of total</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Male Students
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  {maleStudents}
+                </p>
+                <p className="text-xs text-blue-400 mt-1 md:mt-2">
+                  {((maleStudents / Math.max(1, totalStudents)) * 100).toFixed(
+                    1
+                  )}
+                  % of total
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500/20 to-blue-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <User className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
@@ -434,9 +566,19 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Female Students</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">{femaleStudents}</p>
-                <p className="text-xs text-pink-400 mt-1 md:mt-2">{((femaleStudents / Math.max(1, totalStudents)) * 100).toFixed(1)}% of total</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Female Students
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  {femaleStudents}
+                </p>
+                <p className="text-xs text-pink-400 mt-1 md:mt-2">
+                  {(
+                    (femaleStudents / Math.max(1, totalStudents)) *
+                    100
+                  ).toFixed(1)}
+                  % of total
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-pink-500/20 to-pink-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <User className="w-5 h-5 md:w-6 md:h-6 text-pink-400" />
@@ -449,9 +591,15 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">Gender Ratio</p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">{genderRatio}</p>
-                <p className="text-xs text-cyan-400 mt-1 md:mt-2">Male to Female</p>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Gender Ratio
+                </p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
+                  {genderRatio}
+                </p>
+                <p className="text-xs text-cyan-400 mt-1 md:mt-2">
+                  Male to Female
+                </p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Users className="w-5 h-5 md:w-6 md:h-6 text-cyan-400" />
@@ -465,22 +613,45 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <Card className="lg:col-span-2 bg-slate-800 border-slate-700">
           <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg text-white">Student Enrollment Trend</CardTitle>
-            <CardDescription className="text-xs md:text-sm text-slate-400">Last fetched enrollment by month</CardDescription>
+            <CardTitle className="text-base md:text-lg text-white">
+              Student Enrollment Trend
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm text-slate-400">
+              Last fetched enrollment by month
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
             {studentLoading && <div>Loading enrollment data...</div>}
-            {studentError && <div className="text-red-400">Error: {studentError}</div>}
+            {studentError && (
+              <div className="text-red-400">Error: {studentError}</div>
+            )}
             {!studentLoading && !studentError && (
               <div style={{ width: "100%", height: 250 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={studentData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 12 }} />
+                    <XAxis
+                      dataKey="month"
+                      stroke="#94a3b8"
+                      tick={{ fontSize: 12 }}
+                    />
                     <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
-                    <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: 8 }} labelStyle={{ color: "#e2e8f0" }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#1e293b",
+                        border: "1px solid #475569",
+                        borderRadius: 8,
+                      }}
+                      labelStyle={{ color: "#e2e8f0" }}
+                    />
                     <Legend />
-                    <Line type="monotone" dataKey="students" stroke="#06b6d4" strokeWidth={2} dot={{ fill: "#06b6d4" }} />
+                    <Line
+                      type="monotone"
+                      dataKey="students"
+                      stroke="#06b6d4"
+                      strokeWidth={2}
+                      dot={{ fill: "#06b6d4" }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -490,8 +661,12 @@ export default function DashboardPage() {
 
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg text-white">Gender Distribution</CardTitle>
-            <CardDescription className="text-xs md:text-sm text-slate-400">Student breakdown</CardDescription>
+            <CardTitle className="text-base md:text-lg text-white">
+              Gender Distribution
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm text-slate-400">
+              Student breakdown
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
             <ResponsiveContainer width="100%" height={250}>
@@ -505,29 +680,45 @@ export default function DashboardPage() {
                   paddingAngle={2}
                   dataKey="value"
                   labelLine={false}
-                  label={({ percent, name }) => `${name} ${Math.round((percent ?? 0) * 100)}%`}
+                  label={({ percent, name }) =>
+                    `${name} ${Math.round((percent ?? 0) * 100)}%`
+                  }
                 >
                   {genderDataFromStats.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
 
-                <Tooltip content={<GenderTooltip active payload={undefined} />} wrapperStyle={{ outline: "none" }} />
+                <Tooltip
+                  content={<GenderTooltip active payload={undefined} />}
+                  wrapperStyle={{ outline: "none" }}
+                />
               </PieChart>
             </ResponsiveContainer>
 
             <div className="mt-3 md:mt-4 space-y-2">
               {genderDataFromStats.map((item) => {
-                const percent = genderTotal > 0 ? ((item.value / genderTotal) * 100).toFixed(1) : "0.0";
+                const percent =
+                  genderTotal > 0
+                    ? ((item.value / genderTotal) * 100).toFixed(1)
+                    : "0.0";
                 return (
-                  <div key={item.name} className="flex items-center justify-between text-xs md:text-sm">
+                  <div
+                    key={item.name}
+                    className="flex items-center justify-between text-xs md:text-sm"
+                  >
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 md:w-3 md:h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <div
+                        className="w-2 h-2 md:w-3 md:h-3 rounded-full"
+                        style={{ backgroundColor: item.color }}
+                      />
                       <span className="text-slate-300">{item.name}</span>
                     </div>
                     <div className="text-right">
                       <div className="text-white font-medium">{item.value}</div>
-                      <div className="text-slate-400 text-[11px] md:text-xs">{percent}% of total</div>
+                      <div className="text-slate-400 text-[11px] md:text-xs">
+                        {percent}% of total
+                      </div>
                     </div>
                   </div>
                 );
@@ -540,20 +731,46 @@ export default function DashboardPage() {
       {/* Fee Collection Trend */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg text-white">Fee Collection Trend</CardTitle>
-          <CardDescription className="text-xs md:text-sm text-slate-400">Collected, Pending & Overdue (in Lakhs)</CardDescription>
+          <CardTitle className="text-base md:text-lg text-white">
+            Fee Collection Trend
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm text-slate-400">
+            Collected, Pending & Overdue (in Lakhs)
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={feeCollectionData}>
+            <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 12 }} />
               <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
-              <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: 8 }} labelStyle={{ color: "#e2e8f0" }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#1e293b",
+                  border: "1px solid #475569",
+                  borderRadius: 8,
+                }}
+                labelStyle={{ color: "#e2e8f0" }}
+              />
               <Legend />
-              <Bar dataKey="collected" fill="#10b981" radius={[8, 8, 0, 0]} name="Collected" />
-              <Bar dataKey="pending" fill="#f59e0b" radius={[8, 8, 0, 0]} name="Pending" />
-              <Bar dataKey="overdue" fill="#ef4444" radius={[8, 8, 0, 0]} name="Overdue" />
+              <Bar
+                dataKey="collected"
+                fill="#10b981"
+                radius={[8, 8, 0, 0]}
+                name="Collected"
+              />
+              <Bar
+                dataKey="pending"
+                fill="#f59e0b"
+                radius={[8, 8, 0, 0]}
+                name="Pending"
+              />
+              <Bar
+                dataKey="overdue"
+                fill="#ef4444"
+                radius={[8, 8, 0, 0]}
+                name="Overdue"
+              />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
