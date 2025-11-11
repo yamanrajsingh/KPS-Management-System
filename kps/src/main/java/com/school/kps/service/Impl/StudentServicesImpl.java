@@ -2,6 +2,7 @@ package com.school.kps.service.Impl;
 
 import com.school.kps.entity.Student;
 import com.school.kps.exception.ResourceNotFoundException;
+import com.school.kps.payload.EnrollmentByMonth;
 import com.school.kps.payload.StudentDto;
 import com.school.kps.repository.StudentRepo;
 import com.school.kps.service.StudentServices;
@@ -17,6 +18,8 @@ import org.springframework.stereotype.Service;
 
 import jakarta.persistence.criteria.Predicate;
 
+import java.time.Month;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -193,6 +196,30 @@ public class StudentServicesImpl implements StudentServices {
 //        return this.studentRepo.findByFirstNameContainingIgnoreCaseAndClassNameContainingIgnoreCase(name, className)
 //                .stream().map(student -> this.modelMapper.map(student, StudentDto.class)).toList();
 //    }
+
+
+    @Override
+    public List<EnrollmentByMonth> getEnrollmentByMonth(Integer year) {
+        List<Object[]> rows = this.studentRepo.countStudentsGroupedByMonth(year);
+
+        // Map monthNumber -> count
+        Map<Integer, Long> counts = new HashMap<>();
+        for (Object[] row : rows) {
+            // nativeQuery returns numeric types; cast carefully
+            Integer monthNumber = ((Number) row[0]).intValue(); // 1..12
+            Long cnt = ((Number) row[1]).longValue();
+            counts.put(monthNumber, cnt);
+        }
+
+        List<EnrollmentByMonth> result = new ArrayList<>(12);
+        for (int m = 1; m <= 12; m++) {
+            // Short English month name like "Jan", "Feb"
+            String shortName = Month.of(m).getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            long c = counts.getOrDefault(m, 0L);
+            result.add(new EnrollmentByMonth(shortName, c));
+        }
+        return result;
+    }
     @Override
     public Map<String, Long> getClassWiseStudentCount() {
         return this.studentRepo.findAll().stream()

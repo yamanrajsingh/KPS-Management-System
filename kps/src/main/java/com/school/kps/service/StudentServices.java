@@ -1,6 +1,7 @@
 package com.school.kps.service;
 
 import com.school.kps.entity.Student;
+import com.school.kps.payload.EnrollmentByMonth;
 import com.school.kps.payload.StudentDto;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -22,4 +23,5 @@ public interface StudentServices {
     Map<String, Long> getStudentStats();
     long getStudentCountByClassName(String className);
     Map<String, Long> getClassWiseStudentCount();
+     List<EnrollmentByMonth> getEnrollmentByMonth(Integer year);
 }

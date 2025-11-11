@@ -1,5 +1,6 @@
 package com.school.kps.controller;
 
+import com.school.kps.payload.EnrollmentByMonth;
 import com.school.kps.payload.StudentDto;
 import com.school.kps.service.StudentServices;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,4 +91,9 @@ public class StudentController {
         return this.studentServices.getClassWiseStudentCount();
     }
 
+    @GetMapping("/enrollments")
+    public ResponseEntity<List<EnrollmentByMonth>> getEnrollments(@RequestParam(required = false) Integer year) {
+        List<EnrollmentByMonth> response = this.studentServices.getEnrollmentByMonth(year);
+        return ResponseEntity.ok(response);
+    }
 }

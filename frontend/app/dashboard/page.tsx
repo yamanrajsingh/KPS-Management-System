@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import {
   BarChart,
   Bar,
@@ -33,14 +34,12 @@ import {
   AlertCircle,
   User,
   CheckCircle,
-  Clock,
-  AlertTriangle,
   Calendar,
   Award,
   BarChart3,
 } from "lucide-react";
 
-// --- static sample data (renamed to avoid colliding with state vars) ---
+// --- static sample data (fallbacks) ---
 const sampleStudentData = [
   { month: "Jan", students: 120 },
   { month: "Feb", students: 135 },
@@ -63,11 +62,6 @@ const feeCollectionData = [
   { month: "Apr", collected: 14.5, pending: 2.0, overdue: 0.9 },
   { month: "May", collected: 15.2, pending: 1.8, overdue: 0.7 },
   { month: "Jun", collected: 15.8, pending: 1.5, overdue: 0.6 },
-];
-
-const genderData = [
-  { name: "Male", value: 110, color: "#3b82f6" },
-  { name: "Female", value: 85, color: "#ec4899" },
 ];
 
 const salaryData = [
@@ -145,63 +139,62 @@ const teacherInsights = [
   },
 ];
 
-// --- helper formatters ---
+type Stats = {
+  maleStudents: number;
+  femaleStudents: number;
+};
+
 const formatCurrencyINR = (n: number) => {
   if (n >= 100000) {
-    // show in lakhs with 1 decimal if large
     return `₹${(n / 100000).toFixed(1)}L`;
   }
   return `₹${n.toLocaleString("en-IN")}`;
 };
 
+type EnrollmentPoint = { month: string; students: number };
+
 export default function DashboardPage() {
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
   const router = useRouter();
 
-  // state (using sampleStudentData as initial)
+  // Summary states
   const [totalStudents, setTotalStudents] = useState<number>(195);
   const [maleStudents, setMaleStudents] = useState<number>(110);
   const [femaleStudents, setFemaleStudents] = useState<number>(85);
   const [totalTeachers, setTotalTeachers] = useState<number>(28);
-  const [feesCollected, setFeesCollected] = useState<number>(1580000); // rupees
+  const [feesCollected, setFeesCollected] = useState<number>(1580000);
   const [pendingFees, setPendingFees] = useState<number>(150000);
   const [overdueFees, setOverdueFees] = useState<number>(60000);
   const [totalSalaryPaid, setTotalSalaryPaid] = useState<number>(45000);
 
-  const [studentData, setStudentData] =
-    useState<{ month: string; students: number }[]>(sampleStudentData);
+  // centralized stats object (keeps source of truth)
+  const [stats, setStats] = useState<Stats>({ maleStudents: 0, femaleStudents: 0 });
 
-  // Build headers that include the token if present
+  // enrollment chart state
+  const [studentData, setStudentData] = useState<EnrollmentPoint[]>(sampleStudentData);
+  const [studentLoading, setStudentLoading] = useState<boolean>(false);
+  const [studentError, setStudentError] = useState<string | null>(null);
+
   const getAuthHeaders = () => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
-    return token
-      ? {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        }
-      : { "Content-Type": "application/json" };
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
   const handleUnauthorized = () => {
-    // remove token and redirect to login
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("authToken");
-    }
+    if (typeof window !== "undefined") localStorage.removeItem("authToken");
     router.push("/");
   };
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
     if (!token) {
       router.push("/");
       return;
     }
 
-    const headers = getAuthHeaders();
+    const headers = { "Content-Type": "application/json", ...getAuthHeaders() };
 
-    // helper: handle fetch response with 401 logic
+    // helper for fetch-responses (keeps existing behavior for enrollment fetch)
     const check401AndParse = async (res: Response) => {
       if (res.status === 401) {
         handleUnauthorized();
@@ -214,124 +207,130 @@ export default function DashboardPage() {
       return res.json();
     };
 
-    // fetches wrapped in async functions for clarity
+    // AbortController for enrollment fetch
+    const enrollmentController = new AbortController();
+
     (async () => {
-      // 1) students -> compute last 6 months distribution by admissionDate
+      // 1) fetch stats via axios (single source of truth for male/female)
       try {
-        const res = await fetch(`${apiBaseUrl}/api/students`, {
+        const statsRes = await axios.get<Stats>(`${apiBaseUrl}/api/students/stats`, {
           headers,
         });
-        const data = await check401AndParse(res);
+        const statsData = statsRes.data ?? { maleStudents: 0, femaleStudents: 0 };
+        setStats(statsData);
+        // keep separate states in sync for places referencing them directly
+        setMaleStudents(statsData.maleStudents ?? 0);
+        setFemaleStudents(statsData.femaleStudents ?? 0);
 
-        const studentsArr = Array.isArray(data) ? data : data?.students ?? [];
-
-        const now = new Date();
-        const months: { key: string; label: string }[] = [];
-        for (let i = 5; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const key = `${d.getFullYear()}-${d.getMonth() + 1}`; // e.g. 2025-10
-          months.push({
-            key,
-            label: d.toLocaleString("en-US", { month: "short" }),
-          });
+        // if API returns totalStudents inside stats, update it too (defensive)
+        if ((statsData as any).totalStudents && typeof (statsData as any).totalStudents === "number") {
+          setTotalStudents((statsData as any).totalStudents);
         }
-
-        const counts = new Map(months.map((m) => [m.key, 0]));
-
-        studentsArr.forEach((s: any) => {
-          const ad =
-            s.admissionDate ?? s.admission_date ?? s.joinDate ?? s.admittedAt;
-          if (!ad) return;
-          const dt = new Date(ad);
-          if (isNaN(dt.getTime())) return;
-          const key = `${dt.getFullYear()}-${dt.getMonth() + 1}`;
-          if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
-        });
-
-        const result = months.map((m) => ({
-          month: m.label,
-          students: counts.get(m.key) ?? 0,
-        }));
-        setStudentData(result);
-      } catch (err) {
-        console.warn("/api/students fetch failed:", err);
+      } catch (err: any) {
+        if (err?.response?.status === 401) {
+          handleUnauthorized();
+        } else {
+          // don't crash; keep defaults
+          console.warn("axios /api/students/stats failed:", err);
+        }
       }
 
-      // 2) students/stats
+      // 2) fetch enrollments (keeps your existing fetch approach)
+      setStudentLoading(true);
+      setStudentError(null);
       try {
-        const res = await fetch(`${apiBaseUrl}/api/students/stats`, {
+        const res = await fetch(`${apiBaseUrl}/api/students/enrollments`, {
           headers,
+          signal: enrollmentController.signal,
         });
         const data = await check401AndParse(res);
 
-        if (typeof data.totalStudents === "number")
-          setTotalStudents(data.totalStudents);
-        if (typeof data.maleStudents === "number")
-          setMaleStudents(data.maleStudents);
-        if (typeof data.femaleStudents === "number")
-          setFemaleStudents(data.femaleStudents);
-      } catch (err) {
-        console.warn("students/stats fetch failed:", err);
+        if (Array.isArray(data)) {
+          const normalized: EnrollmentPoint[] = data.map((item: any) => {
+            let monthLabel = "";
+            let students = 0;
+
+            if (typeof item.month === "string") {
+              monthLabel = item.month;
+            } else if (typeof item.month === "number" || typeof item.monthNumber === "number") {
+              const m = Number(item.month ?? item.monthNumber);
+              if (!Number.isNaN(m) && m >= 1 && m <= 12) {
+                monthLabel = new Date(2020, m - 1, 1).toLocaleString("en-US", { month: "short" });
+              }
+            }
+
+            if (typeof item.students === "number") students = Number(item.students);
+            else if (typeof item.cnt === "number") students = Number(item.cnt);
+            else if (typeof item.count === "number") students = Number(item.count);
+            else students = Number(item.value ?? 0);
+
+            return { month: monthLabel || "", students: Number.isFinite(students) ? students : 0 };
+          });
+
+          if (normalized.length > 0) setStudentData(normalized);
+          else setStudentData(sampleStudentData);
+        } else {
+          console.warn("Unexpected enrollments response shape:", data);
+          setStudentData(sampleStudentData);
+        }
+      } catch (err: any) {
+        if (err?.name === "AbortError") {
+          // aborted - ignore
+        } else if (err?.response?.status === 401) {
+          handleUnauthorized();
+        } else {
+          console.warn("/api/students/enrollments fetch failed:", err);
+          setStudentError(err?.message ?? String(err));
+          setStudentData(sampleStudentData);
+        }
+      } finally {
+        setStudentLoading(false);
       }
 
-      // 3) teachers (count)
+      // 3) teachers (count) - unchanged (fetch)
       try {
-        const res = await fetch(`${apiBaseUrl}/api/teachers/`, {
-          headers,
-        });
-        const data = await check401AndParse(res);
-
-        if (Array.isArray(data)) setTotalTeachers(data.length);
-        else if (
-          typeof data === "object" &&
-          data !== null &&
-          typeof (data as any).length === "number"
-        )
-          setTotalTeachers((data as any).length);
-        else if (typeof data.count === "number") setTotalTeachers(data.count); // optional format
+        const res = await fetch(`${apiBaseUrl}/api/teachers/`, { headers });
+        if (res.status === 401) {
+          handleUnauthorized();
+        } else {
+          const data = await res.json().catch(() => null);
+          if (Array.isArray(data)) setTotalTeachers(data.length);
+          else if (data && typeof (data as any).length === "number") setTotalTeachers((data as any).length);
+          else if (data && typeof (data as any).count === "number") setTotalTeachers((data as any).count);
+        }
       } catch (err) {
         console.warn("teachers fetch failed:", err);
       }
 
       // 4) fee summary
       try {
-        const res = await fetch(
-          `${apiBaseUrl}/api/students/fee/summary`,
-          { headers }
-        );
-        const data = await check401AndParse(res);
-
-        if (typeof data.totalCollected === "number")
-          setFeesCollected(data.totalCollected);
-        if (typeof data.totalPending === "number")
-          setPendingFees(data.totalPending);
-        if (typeof data.totalOverdue === "number")
-          setOverdueFees(data.totalOverdue);
+        const res = await fetch(`${apiBaseUrl}/api/students/fee/summary`, { headers });
+        if (res.status === 401) handleUnauthorized();
+        else {
+          const data = await res.json().catch(() => null);
+          if (data) {
+            if (typeof data.totalCollected === "number") setFeesCollected(data.totalCollected);
+            if (typeof data.totalPending === "number") setPendingFees(data.totalPending);
+            if (typeof data.totalOverdue === "number") setOverdueFees(data.totalOverdue);
+          }
+        }
       } catch (err) {
         console.warn("fee summary fetch failed:", err);
       }
 
       // 5) teacher salaries
       try {
-        const res = await fetch(`${apiBaseUrl}/api/teacher/salary/`, {
-          headers,
-        });
-        const data = await check401AndParse(res);
-
-        if (Array.isArray(data)) {
-          const sum = data.reduce(
-            (acc: number, item: any) => acc + (Number(item.amount) || 0),
-            0
-          );
-          if (!isNaN(sum)) setTotalSalaryPaid(sum);
-        } else if (typeof data === "object" && data !== null) {
-          if (Array.isArray((data as any).salaries)) {
-            const sum = (data as any).salaries.reduce(
-              (acc: number, item: any) => acc + (Number(item.amount) || 0),
-              0
-            );
+        const res = await fetch(`${apiBaseUrl}/api/teacher/salary/`, { headers });
+        if (res.status === 401) handleUnauthorized();
+        else {
+          const data = await res.json().catch(() => null);
+          if (Array.isArray(data)) {
+            const sum = data.reduce((acc: number, item: any) => acc + (Number(item.amount) || 0), 0);
             if (!isNaN(sum)) setTotalSalaryPaid(sum);
-          } else if (typeof (data as any).total === "number") {
+          } else if (data && Array.isArray((data as any).salaries)) {
+            const sum = (data as any).salaries.reduce((acc: number, item: any) => acc + (Number(item.amount) || 0), 0);
+            if (!isNaN(sum)) setTotalSalaryPaid(sum);
+          } else if (data && typeof (data as any).total === "number") {
             setTotalSalaryPaid((data as any).total);
           }
         }
@@ -339,14 +338,40 @@ export default function DashboardPage() {
         console.warn("teacher salary fetch failed:", err);
       }
     })();
+
+    return () => {
+      enrollmentController.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally empty (runs on mount). If you want to react to router/token changes, add deps.
+  }, []);
 
   // computed values
-  const genderRatio =
-    femaleStudents === 0
-      ? "—"
-      : (maleStudents / femaleStudents).toFixed(2) + ":1";
+  const genderRatio = femaleStudents === 0 ? "—" : (maleStudents / femaleStudents).toFixed(2) + ":1";
+
+  // derive gender pie data from stats (single source)
+  const deriveGenderData = (s: Stats) => {
+    const male = Number(s.maleStudents ?? 0);
+    const female = Number(s.femaleStudents ?? 0);
+    return [
+      { name: "Male", value: male, color: "#3b82f6" },
+      { name: "Female", value: female, color: "#ec4899" },
+    ];
+  };
+
+  // small custom tooltip for pie (renders count + percent)
+  function GenderTooltip({ active, payload }: { active?: boolean; payload?: any }) {
+    if (!active || !payload || !payload.length) return null;
+    const item = payload[0].payload;
+    const total = deriveGenderData(stats).reduce((acc, cur) => acc + cur.value, 0);
+    const percent = total > 0 ? ((item.value / total) * 100).toFixed(1) : "0.0";
+    return (
+      <div style={{ backgroundColor: "#0f172a", color: "#e2e8f0", padding: 8, borderRadius: 8, border: "1px solid #475569", minWidth: 120 }}>
+        <div style={{ fontSize: 12, opacity: 0.9 }}>{item.name}</div>
+        <div style={{ fontWeight: 700, marginTop: 4 }}>{item.value} students</div>
+        <div style={{ fontSize: 12, marginTop: 2 }}>{percent}%</div>
+      </div>
+    );
+  }
 
   const StatCard = ({ icon: Icon, label, value, change }: any) => (
     <Card className="bg-slate-800 border-slate-700">
@@ -354,9 +379,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs md:text-sm text-slate-400">{label}</p>
-            <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2 truncate">
-              {value}
-            </p>
+            <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2 truncate">{value}</p>
             {change && (
               <p className="text-xs text-green-400 mt-1 md:mt-2 flex items-center gap-1">
                 <TrendingUp className="w-3 h-3 flex-shrink-0" />
@@ -372,156 +395,33 @@ export default function DashboardPage() {
     </Card>
   );
 
+  // gender data derived for rendering
+  const genderDataFromStats = deriveGenderData(stats);
+  const genderTotal = genderDataFromStats.reduce((acc, cur) => acc + cur.value, 0);
+
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-white">Dashboard</h1>
-        <p className="text-sm md:text-base text-slate-400 mt-1">
-          Welcome to your school management system
-        </p>
+        <p className="text-sm md:text-base text-slate-400 mt-1">Welcome to your school management system</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <StatCard
-          icon={Users}
-          label="Total Students"
-          value={totalStudents}
-          change="+12% this month"
-        />
-        <StatCard
-          icon={BookOpen}
-          label="Total Teachers"
-          value={totalTeachers}
-          change="+2 this month"
-        />
-        <StatCard
-          icon={DollarSign}
-          label="Fees Collected"
-          value={formatCurrencyINR(feesCollected)}
-          change={`Collection Rate: ${
-            feesCollected > 0
-              ? (
-                  (feesCollected /
-                    Math.max(1, feesCollected + pendingFees + overdueFees)) *
-                  100
-                ).toFixed(0)
-              : 0
-          }%`}
-        />
-        <StatCard
-          icon={Wallet}
-          label="Salaries Paid"
-          value={formatCurrencyINR(totalSalaryPaid)}
-          change="On schedule"
-        />
+        <StatCard icon={Users} label="Total Students" value={totalStudents} change="+12% this month" />
+        <StatCard icon={BookOpen} label="Total Teachers" value={totalTeachers} change="+2 this month" />
+        <StatCard icon={DollarSign} label="Fees Collected" value={formatCurrencyINR(feesCollected)} change={`Collection Rate: ${feesCollected > 0 ? ((feesCollected / Math.max(1, feesCollected + pendingFees + overdueFees)) * 100).toFixed(0) : 0}%`} />
+        <StatCard icon={Wallet} label="Salaries Paid" value={formatCurrencyINR(totalSalaryPaid)} change="On schedule" />
       </div>
 
-      {/* Attendance and Performance cards */}
-
+      {/* Gender Statistics Section (cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card className="bg-slate-800 border-slate-700">
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">
-                  Attendance Today
-                </p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
-                  92%
-                </p>
-                <p className="text-xs text-green-400 mt-1 md:mt-2">
-                  165 of 180 present
-                </p>
-              </div>
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="pt-4 md:pt-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">
-                  Class Avg. Score
-                </p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
-                  88.5%
-                </p>
-                <p className="text-xs text-blue-400 mt-1 md:mt-2">
-                  +2.3% from last month
-                </p>
-              </div>
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="pt-4 md:pt-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">
-                  Top Performer
-                </p>
-                <p className="text-lg md:text-xl font-bold text-white mt-1 md:mt-2 truncate">
-                  Aarav Sharma
-                </p>
-                <p className="text-xs text-yellow-400 mt-1 md:mt-2">
-                  Score: 95%
-                </p>
-              </div>
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-yellow-500/20 to-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Award className="w-5 h-5 md:w-6 md:h-6 text-yellow-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="pt-4 md:pt-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">
-                  Upcoming Events
-                </p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
-                  {upcomingEvents.length}
-                </p>
-                <p className="text-xs text-purple-400 mt-1 md:mt-2">
-                  This month
-                </p>
-              </div>
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Calendar className="w-5 h-5 md:w-6 md:h-6 text-purple-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Gender Statistics Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="pt-4 md:pt-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">
-                  Male Students
-                </p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
-                  {maleStudents}
-                </p>
-                <p className="text-xs text-blue-400 mt-1 md:mt-2">
-                  {((maleStudents / Math.max(1, totalStudents)) * 100).toFixed(
-                    1
-                  )}
-                  % of total
-                </p>
+                <p className="text-xs md:text-sm text-slate-400">Male Students</p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">{maleStudents}</p>
+                <p className="text-xs text-blue-400 mt-1 md:mt-2">{((maleStudents / Math.max(1, totalStudents)) * 100).toFixed(1)}% of total</p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500/20 to-blue-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <User className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
@@ -534,19 +434,9 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">
-                  Female Students
-                </p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
-                  {femaleStudents}
-                </p>
-                <p className="text-xs text-pink-400 mt-1 md:mt-2">
-                  {(
-                    (femaleStudents / Math.max(1, totalStudents)) *
-                    100
-                  ).toFixed(1)}
-                  % of total
-                </p>
+                <p className="text-xs md:text-sm text-slate-400">Female Students</p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">{femaleStudents}</p>
+                <p className="text-xs text-pink-400 mt-1 md:mt-2">{((femaleStudents / Math.max(1, totalStudents)) * 100).toFixed(1)}% of total</p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-pink-500/20 to-pink-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <User className="w-5 h-5 md:w-6 md:h-6 text-pink-400" />
@@ -559,15 +449,9 @@ export default function DashboardPage() {
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xs md:text-sm text-slate-400">
-                  Gender Ratio
-                </p>
-                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">
-                  {genderRatio}
-                </p>
-                <p className="text-xs text-cyan-400 mt-1 md:mt-2">
-                  Male to Female
-                </p>
+                <p className="text-xs md:text-sm text-slate-400">Gender Ratio</p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-1 md:mt-2">{genderRatio}</p>
+                <p className="text-xs text-cyan-400 mt-1 md:mt-2">Male to Female</p>
               </div>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Users className="w-5 h-5 md:w-6 md:h-6 text-cyan-400" />
@@ -577,147 +461,99 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* rest of dashboard unchanged - charts and lists use the static sample arrays above */}
-
+      {/* Enrollment trend + Gender Pie */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Student Enrollment Trend */}
         <Card className="lg:col-span-2 bg-slate-800 border-slate-700">
           <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg text-white">
-              Student Enrollment Trend
-            </CardTitle>
-            <CardDescription className="text-xs md:text-sm text-slate-400">
-              Last 6 months
-            </CardDescription>
+            <CardTitle className="text-base md:text-lg text-white">Student Enrollment Trend</CardTitle>
+            <CardDescription className="text-xs md:text-sm text-slate-400">Last fetched enrollment by month</CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={studentData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
-                <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "1px solid #475569",
-                    borderRadius: "8px",
-                  }}
-                  labelStyle={{ color: "#e2e8f0" }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="students"
-                  stroke="#06b6d4"
-                  strokeWidth={2}
-                  dot={{ fill: "#06b6d4" }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {studentLoading && <div>Loading enrollment data...</div>}
+            {studentError && <div className="text-red-400">Error: {studentError}</div>}
+            {!studentLoading && !studentError && (
+              <div style={{ width: "100%", height: 250 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={studentData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 12 }} />
+                    <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
+                    <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: 8 }} labelStyle={{ color: "#e2e8f0" }} />
+                    <Legend />
+                    <Line type="monotone" dataKey="students" stroke="#06b6d4" strokeWidth={2} dot={{ fill: "#06b6d4" }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Gender Ratio Pie Chart */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg text-white">
-              Gender Distribution
-            </CardTitle>
-            <CardDescription className="text-xs md:text-sm text-slate-400">
-              Student breakdown
-            </CardDescription>
+            <CardTitle className="text-base md:text-lg text-white">Gender Distribution</CardTitle>
+            <CardDescription className="text-xs md:text-sm text-slate-400">Student breakdown</CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
-                  data={genderData}
+                  data={genderDataFromStats}
                   cx="50%"
                   cy="50%"
                   innerRadius={40}
                   outerRadius={80}
                   paddingAngle={2}
                   dataKey="value"
+                  labelLine={false}
+                  label={({ percent, name }) => `${name} ${Math.round((percent ?? 0) * 100)}%`}
                 >
-                  {genderData.map((entry, index) => (
+                  {genderDataFromStats.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1e293b",
-                    border: "1px solid #475569",
-                    borderRadius: "8px",
-                  }}
-                  labelStyle={{ color: "#e2e8f0" }}
-                />
+
+                <Tooltip content={<GenderTooltip active payload={undefined} />} wrapperStyle={{ outline: "none" }} />
               </PieChart>
             </ResponsiveContainer>
+
             <div className="mt-3 md:mt-4 space-y-2">
-              {genderData.map((item) => (
-                <div
-                  key={item.name}
-                  className="flex items-center justify-between text-xs md:text-sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2 h-2 md:w-3 md:h-3 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-slate-300">{item.name}</span>
+              {genderDataFromStats.map((item) => {
+                const percent = genderTotal > 0 ? ((item.value / genderTotal) * 100).toFixed(1) : "0.0";
+                return (
+                  <div key={item.name} className="flex items-center justify-between text-xs md:text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 md:w-3 md:h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-slate-300">{item.name}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-white font-medium">{item.value}</div>
+                      <div className="text-slate-400 text-[11px] md:text-xs">{percent}% of total</div>
+                    </div>
                   </div>
-                  <span className="text-white font-medium">{item.value}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Fee Collection Trend, Fee Status, Salaries, Upcoming Events, Top Students, Teacher Insights, Attendance tracker, Alerts - kept unchanged and using sample constants */}
-
+      {/* Fee Collection Trend */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg text-white">
-            Fee Collection Trend
-          </CardTitle>
-          <CardDescription className="text-xs md:text-sm text-slate-400">
-            Collected, Pending & Overdue (in Lakhs)
-          </CardDescription>
+          <CardTitle className="text-base md:text-lg text-white">Fee Collection Trend</CardTitle>
+          <CardDescription className="text-xs md:text-sm text-slate-400">Collected, Pending & Overdue (in Lakhs)</CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={feeCollectionData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
+              <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 12 }} />
               <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#1e293b",
-                  border: "1px solid #475569",
-                  borderRadius: "8px",
-                }}
-                labelStyle={{ color: "#e2e8f0" }}
-              />
+              <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: 8 }} labelStyle={{ color: "#e2e8f0" }} />
               <Legend />
-              <Bar
-                dataKey="collected"
-                fill="#10b981"
-                radius={[8, 8, 0, 0]}
-                name="Collected"
-              />
-              <Bar
-                dataKey="pending"
-                fill="#f59e0b"
-                radius={[8, 8, 0, 0]}
-                name="Pending"
-              />
-              <Bar
-                dataKey="overdue"
-                fill="#ef4444"
-                radius={[8, 8, 0, 0]}
-                name="Overdue"
-              />
+              <Bar dataKey="collected" fill="#10b981" radius={[8, 8, 0, 0]} name="Collected" />
+              <Bar dataKey="pending" fill="#f59e0b" radius={[8, 8, 0, 0]} name="Pending" />
+              <Bar dataKey="overdue" fill="#ef4444" radius={[8, 8, 0, 0]} name="Overdue" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
