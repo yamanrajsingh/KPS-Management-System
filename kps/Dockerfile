@@ -5,16 +5,16 @@ FROM maven:3.9.6-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
-# 1️⃣ Copy pom.xml first
+# Copy pom.xml first for dependency caching
 COPY pom.xml .
 
-# 2️⃣ Download dependencies (cache layer)
+# Download dependencies
 RUN mvn dependency:go-offline
 
-# 3️⃣ Copy source code
+# Copy source code
 COPY src ./src
 
-# 4️⃣ Build jar
+# Build the JAR
 RUN mvn clean package -DskipTests
 
 # =========================
@@ -24,8 +24,11 @@ FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
+# Copy built jar from build stage
 COPY --from=build /app/target/kps-0.0.1-SNAPSHOT.jar app.jar
 
+# Railway uses dynamic ports, but expose 8080 for documentation
 EXPOSE 8080
 
+# Start Spring Boot
 ENTRYPOINT ["java","-XX:MaxRAMPercentage=75","-jar","app.jar"]
