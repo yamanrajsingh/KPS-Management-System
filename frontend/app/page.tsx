@@ -31,15 +31,18 @@ export default function LoginPage() {
     setIsLoading(true);
 
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+    console.log("Using API Base URL:", apiBaseUrl);
 
     try {
       const res = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: "POST",
-        headers: {
+        headers: {    
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
+
+      console.log("Login response status:", res);
 
       if (!res.ok) {
         // try to parse error message from server if provided
