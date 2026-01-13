@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/kps.iml" filepath="$PROJECT_DIR$/.idea/kps.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Kps Management.iml" filepath="$PROJECT_DIR$/.idea/Kps Management.iml" />
+      <module fileurl="file://$PROJECT_DIR$/kps/kps.iml" filepath="$PROJECT_DIR$/kps/kps.iml" />
     </modules>
   </component>
 </project>
