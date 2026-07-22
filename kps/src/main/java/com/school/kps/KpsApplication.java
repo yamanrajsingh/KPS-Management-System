@@ -9,9 +9,9 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class KpsApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(KpsApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(KpsApplication.class, args);
+    }
 
     @Bean
     public ModelMapper modelMapper(){
@@ -19,5 +19,4 @@ public class KpsApplication {
     }
 
 }
-
 

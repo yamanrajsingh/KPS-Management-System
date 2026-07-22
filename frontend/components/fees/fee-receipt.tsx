@@ -61,7 +61,6 @@ export default function FeeReceipt({ fee, onClose }: FeeReceiptProps) {
               </p>
             </div>
           </div>
-
           {/* Student Details */}
           <div className="border-t pt-4">
             <h3 className="font-semibold text-slate-900 mb-3">

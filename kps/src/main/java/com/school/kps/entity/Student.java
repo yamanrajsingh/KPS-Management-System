@@ -10,15 +10,15 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-@Entity
-@Getter
-@Setter
-@NoArgsConstructor
-@Table(name = "students")
+@Entity // for defining that this class directly map with database table
+@Getter // for getter method in the class
+@Setter // for setter method in the class
+@NoArgsConstructor // constructor without arguments
+@Table(name = "students") // this annotation is used for name of the table in database ( want to change the table name by default is class name )
 public class Student {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "student_id")
+    @Id // this used for the primary key
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // automatically generate the unique value
+    @Column(name = "student_id")  // specify the column in the table and name of the column
     private Integer id;
 
     @Column(length = 100, nullable = false, name = "first_name")

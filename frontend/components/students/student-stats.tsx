@@ -51,6 +51,8 @@ export default function StudentStats() {
   };
 
    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+  
+   console.log(apiBaseUrl);
 
   useEffect(() => {
     // redirect to login if no token
