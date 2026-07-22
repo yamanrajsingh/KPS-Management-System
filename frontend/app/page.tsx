@@ -30,7 +30,7 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
 
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
     console.log("Using API Base URL:", apiBaseUrl);
 
     try {
